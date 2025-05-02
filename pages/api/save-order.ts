@@ -176,6 +176,19 @@ async function sendOrderConfirmationEmail(
 // パートナー向けメールを送信する関数
 async function sendPartnerEmail(to: string, subject: string, orderNumber: string, storeName: string, items: any[]) {
   try {
+    console.log("Partner email request received:", {
+      to,
+      subject,
+      orderNumber,
+      storeName,
+      itemCount: items?.length || 0,
+    })
+
+    if (!to || !subject || !orderNumber || !storeName || !items) {
+      console.error("Missing parameters:", { to, subject, orderNumber, storeName, hasItems: !!items })
+      throw new Error("必要なパラメータが不足しています")
+    }
+
     // 商品リストのHTMLを生成
     const itemsHtml = items
       .map(
@@ -236,6 +249,17 @@ async function sendPartnerEmail(to: string, subject: string, orderNumber: string
     </div>
   `
 
+    console.log("Sending partner email to:", to)
+
+    // SMTPの設定をログ出力（パスワードは隠す）
+    console.log("SMTP Configuration:", {
+      host: process.env.SMTP_HOST || "smtp.gmail.com",
+      port: Number(process.env.SMTP_PORT) || 587,
+      secure: process.env.SMTP_SECURE === "true",
+      user: process.env.SMTP_USER ? "設定済み" : "未設定",
+      from: process.env.SMTP_FROM || "\"SPLASH'N'GO!\" <noreply@splashngo.example.com>",
+    })
+
     // メール送信
     const info = await transporter.sendMail({
       from: process.env.SMTP_FROM || "\"SPLASH'N'GO!\" <noreply@splashngo.example.com>",
@@ -248,6 +272,11 @@ async function sendPartnerEmail(to: string, subject: string, orderNumber: string
     return { success: true, messageId: info.messageId }
   } catch (error) {
     console.error("パートナーメール送信エラー:", error)
+    // エラーの詳細情報をログ出力
+    if (error instanceof Error) {
+      console.error("エラーメッセージ:", error.message)
+      console.error("エラースタック:", error.stack)
+    }
     throw error
   }
 }
@@ -631,34 +660,35 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return
     }
 
-    // パートナーメールの送信
-    const partnerEmailPromises = Object.values(partnerGroups).map(async (partnerInfo) => {
-      try {
-        console.log(`Sending email to partner: ${partnerInfo.name} (${partnerInfo.email})`)
+    // パートナーメールの送信部分を修正
+    try {
+      // パートナーメールの送信を同期的に処理
+      for (const partnerInfo of Object.values(partnerGroups)) {
+        try {
+          console.log(`Sending email to partner: ${partnerInfo.name} (${partnerInfo.email})`)
 
-        await sendPartnerEmail(
-          partnerInfo.email,
-          `【SPLASH'N'GO!】発注通知 (${orderNumber})`,
-          orderNumber,
-          storeInfo.name,
-          partnerInfo.items,
-        )
+          const result = await sendPartnerEmail(
+            partnerInfo.email,
+            `【SPLASH'N'GO!】発注通知 (${orderNumber})`,
+            orderNumber,
+            storeInfo.name,
+            partnerInfo.items,
+          )
 
-        console.log(`${partnerInfo.name}へのメール送信成功`)
-      } catch (error) {
-        console.error(`${partnerInfo.name}へのメール処理エラー:`, error)
-        // エラーがあっても処理を続行
+          console.log(`${partnerInfo.name}へのメール送信成功:`, result)
+        } catch (error) {
+          console.error(`${partnerInfo.name}へのメール処理エラー:`, error)
+          // エラーがあっても処理を続行
+        }
       }
-    })
 
-    // パートナーメールの送信を待たずに成功レスポンスを返す
-    // これにより、ユーザー体験が向上し、アプリのパフォーマンスが改善されます
-    res.status(200).json({ success: true, orderNumber })
-
-    // バックグラウンドでパートナーメールの送信を完了
-    Promise.all(partnerEmailPromises).catch((error) => {
-      console.error("Partner email background processing error:", error)
-    })
+      // すべてのパートナーメール送信処理が完了した後にレスポンスを返す
+      res.status(200).json({ success: true, orderNumber })
+    } catch (error) {
+      console.error("Error in partner email processing:", error)
+      // パートナーメール処理でエラーが発生しても、注文自体は成功として扱う
+      res.status(200).json({ success: true, orderNumber, partnerEmailError: true })
+    }
   } catch (error) {
     console.error("Error saving order:", error)
     res.status(500).json({
