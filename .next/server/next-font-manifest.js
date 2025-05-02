@@ -1,0 +1,1 @@
+self.__NEXT_FONT_MANIFEST="{\"pages\":{},\"app\":{\"/home/kawam0t0/kawam0t0-orderwebapp20250502/app/layout\":[\"static/media/a34f9d1faa5f3315-s.p.woff2\"]},\"appUsingSizeAdjust\":true,\"pagesUsingSizeAdjust\":false}"
