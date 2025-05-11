@@ -15,7 +15,7 @@ type GroupedItem = {
   leadTime: string
   partnerName: string
   partnerEmail: string
-  imageUrl?: string // 画像URLを追加
+  imageUrl: string // 画像URLを追加
 }
 
 async function getAuthToken() {
@@ -53,6 +53,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (!process.env.SHEET_ID) {
       console.error("SHEET_ID is not set in environment variables")
       // テスト用のダミーデータを返す
+      if (sheet === "store_info!A2:G") {
+        return res.status(200).json([
+          ["store1", "テスト店舗1", "100-0001", "東京都渋谷区", "03-1234-5678", "test1@example.com", "password1"],
+          ["store2", "テスト店舗2", "530-0001", "大阪府大阪市", "06-1234-5678", "test2@example.com", "password2"],
+        ])
+      }
       return res.status(200).json([
         ["store1", "テスト店舗1", "東京都渋谷区", "03-1234-5678", "山田太郎", "test1@example.com"],
         ["store2", "テスト店舗2", "大阪府大阪市", "06-1234-5678", "佐藤次郎", "test2@example.com"],
@@ -65,6 +71,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       // 認証情報が取得できない場合はテストデータを返す
       if (!auth) {
         console.warn("認証情報が取得できませんでした。テストデータを返します。")
+        if (sheet === "store_info!A2:G") {
+          return res.status(200).json([
+            ["store1", "テスト店舗1", "100-0001", "東京都渋谷区", "03-1234-5678", "test1@example.com", "password1"],
+            ["store2", "テスト店舗2", "530-0001", "大阪府大阪市", "06-1234-5678", "test2@example.com", "password2"],
+          ])
+        }
         return res.status(200).json([
           ["store1", "テスト店舗1", "東京都渋谷区", "03-1234-5678", "山田太郎", "test1@example.com"],
           ["store2", "テスト店舗2", "大阪府大阪市", "06-1234-5678", "佐藤次郎", "test2@example.com"],
@@ -76,10 +88,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         auth,
       })
 
-      // Available_itemsシートの範囲を修正してK列まで含める
+      // Available_itemsシートの範囲を修正してJ列まで含める
       let range = ""
       if (sheet === "Available_items") {
-        range = "Available_items!A2:L" // K列まで拡張
+        range = "Available_items!A2:K" // J列からK列に変更
       } else if (sheet === "Order_history") {
         range = "Order_history!A2:AV" // 注文履歴は広い範囲を取得
       } else if (sheet === "hirock_item_history") {
@@ -88,13 +100,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         range = `${sheet}`
       }
 
+      console.log(`Fetching data from sheet: ${range}`)
+
       const response = await sheets.spreadsheets.values.get({
         spreadsheetId: process.env.SHEET_ID,
         range: range,
       })
 
       if (!response.data.values) {
-        return res.status(404).json({ error: "No data found" })
+        console.warn(`No data found in sheet: ${range}`)
+
+        // store_info シートの場合はテストデータを返す
+        if (sheet === "store_info!A2:G") {
+          return res.status(200).json([
+            ["store1", "テスト店舗1", "100-0001", "東京都渋谷区", "03-1234-5678", "test1@example.com", "password1"],
+            ["store2", "テスト店舗2", "530-0001", "大阪府大阪市", "06-1234-5678", "test2@example.com", "password2"],
+          ])
+        }
+
+        return res.status(404).json({ error: "No data found", sheet: sheet })
       }
 
       if (sheet === "Available_items") {
@@ -110,9 +134,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     } catch (error) {
       console.error("Error details:", error)
+
+      // エラーメッセージをより詳細に
+      const errorMessage = error instanceof Error ? error.message : "Unknown error"
+      const errorStack = error instanceof Error ? error.stack : ""
+
+      // テストデータを返す（シートに応じて）
+      if (sheet === "store_info!A2:G") {
+        console.warn("店舗情報の取得に失敗しました。テストデータを返します。")
+        return res.status(200).json([
+          ["store1", "テスト店舗1", "100-0001", "東京都渋谷区", "03-1234-5678", "test1@example.com", "password1"],
+          ["store2", "テスト店舗2", "530-0001", "大阪府大阪市", "06-1234-5678", "test2@example.com", "password2"],
+        ])
+      }
+
       res.status(500).json({
         error: "Error fetching data from Google Sheets",
-        details: error instanceof Error ? error.message : "Unknown error",
+        details: errorMessage,
+        stack: process.env.NODE_ENV === "development" ? errorStack : undefined,
+        sheet: sheet,
       })
     }
   } else {
@@ -159,7 +199,7 @@ function processAvailableItems(rows: any[][]) {
         leadTime: leadTime || "2週間",
         partnerName: partnerName || "",
         partnerEmail: partnerEmail || "", // パートナーのメールアドレス
-        imageUrl: imageUrl || "", // 画像URL
+        imageUrl: imageUrl || "", // 画像URLを追加
       })
     }
 
@@ -169,11 +209,6 @@ function processAvailableItems(rows: any[][]) {
     // カラーとサイズを追加（存在する場合）
     if (color) item.colors.add(color)
     if (size) item.sizes.add(size)
-
-    // 画像URLを追加（存在する場合）
-    if (imageUrl && !item.imageUrl) {
-      item.imageUrl = imageUrl
-    }
 
     // 数量を追加（販促グッズの場合は特に重要）
     if (amount) {
@@ -219,7 +254,7 @@ function processAvailableItems(rows: any[][]) {
       leadTime: item.leadTime,
       partnerName: item.partnerName,
       partnerEmail: item.partnerEmail, // パートナーのメールアドレスを返す
-      imageUrl: item.imageUrl, // 画像URLを返す
+      imageUrl: item.imageUrl, // 画像URLを追加
     }
   })
 }
@@ -228,7 +263,7 @@ function processAvailableItems(rows: any[][]) {
 const specialPromotionalItems = [
   "ポイントカード",
   "サブスクメンバーズカード",
-  "サブスクフラ���ヤー",
+  "サブスクフライヤー",
   "フリーチケット",
   "クーポン券",
   "名刺",
