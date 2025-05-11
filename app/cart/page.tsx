@@ -31,7 +31,7 @@ const isApparelItem = (name: string): boolean => {
 }
 
 // 数量の表示方法を修正する関数
-const formatQuantity = (item: CartItem) => {
+const formatQuantity = (item) => {
   // 特定の販促グッズの場合は、数量をそのまま表示
   if (specialPromotionalItems.some((name) => item.item_name.includes(name))) {
     return `${item.quantity}枚`
@@ -58,27 +58,39 @@ type CartItem = {
   imageUrl?: string // 画像URLを追加
 }
 
-// COMING SOON画像のURL
-const COMING_SOON_IMAGE_URL =
-  "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/0005720_coming-soon-page_550-GJuRp7f7JXrp3ZSP6hK2ihMLTP2abk.webp"
+// デフォルトの画像プレースホルダーURL
+const DEFAULT_PLACEHOLDER_URL = "/diverse-products-still-life.png"
 
 // Google DriveのURLを直接表示可能な形式に変換する関数
 const convertGoogleDriveUrl = (url: string): string => {
   try {
+    if (!url) return DEFAULT_PLACEHOLDER_URL
+
+    // URLが空文字列または無効な場合はプレースホルダーを返す
+    if (url.trim() === "") return DEFAULT_PLACEHOLDER_URL
+
     // Google DriveのURLかどうかを確認
-    if (url && url.includes("drive.google.com/file/d/")) {
+    if (url.includes("drive.google.com/file/d/")) {
       // ファイルIDを抽出
       const fileIdMatch = url.match(/\/d\/([^/]+)/)
       if (fileIdMatch && fileIdMatch[1]) {
         const fileId = fileIdMatch[1]
         // 直接表示可能なURLに変換
+        console.log(`Converting Google Drive URL for file ID: ${fileId}`)
         return `https://drive.google.com/uc?export=view&id=${fileId}`
       }
     }
+
+    // URLが既に変換済みかチェック
+    if (url.includes("drive.google.com/uc?export=view&id=")) {
+      return url
+    }
+
+    // その他の有効なURLはそのまま返す
     return url
   } catch (error) {
     console.error("Error converting Google Drive URL:", error)
-    return url
+    return DEFAULT_PLACEHOLDER_URL
   }
 }
 
@@ -87,7 +99,8 @@ export default function CartPage() {
   const [cartItems, setCartItems] = useState<CartItem[]>([])
   const [quantities, setQuantities] = useState<{ [key: string]: number }>({})
   const [isCheckingOut, setIsCheckingOut] = useState(false)
-  const [products, setProducts] = useState<any[]>([]) // 商品データを保持するstate
+  const [products, setProducts] = useState<any[]>([]) //   setIsCheckingOut] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
 
   // カート情報の取得
   useEffect(() => {
@@ -114,11 +127,27 @@ export default function CartPage() {
 
   // 商品データを取得する関数
   const fetchProducts = async () => {
+    setIsLoading(true)
     try {
+      console.log("Fetching products for cart...")
       const response = await fetch("/api/sheets?sheet=Available_items")
       if (response.ok) {
         const data = await response.json()
         setProducts(data)
+
+        // デバッグ用：データ構造を確認
+        console.log("Fetched products data:", data.length, "items")
+        console.log(
+          "Sample products (first 3):",
+          data.slice(0, 3).map((p) => ({
+            name: p.name,
+            imageUrl: p.imageUrl,
+          })),
+        )
+
+        // 画像URLを持つ商品の数をカウント
+        const itemsWithImages = data.filter((p) => p.imageUrl && p.imageUrl.trim() !== "").length
+        console.log(`Found ${itemsWithImages} items with image URLs out of ${data.length} total items`)
 
         // カート内の商品に画像URLを追加
         if (data && data.length > 0) {
@@ -127,8 +156,9 @@ export default function CartPage() {
             const items = JSON.parse(savedCart)
             const updatedItems = items.map((item: CartItem) => {
               // 商品名で一致する商品を検索
-              const matchingProduct = data.find((product: any) => product.name === item.item_name)
+              const matchingProduct = data.find((product) => product.name === item.item_name)
               if (matchingProduct && matchingProduct.imageUrl) {
+                console.log(`Found matching product with image URL for ${item.item_name}: ${matchingProduct.imageUrl}`)
                 return {
                   ...item,
                   imageUrl: convertGoogleDriveUrl(matchingProduct.imageUrl),
@@ -143,6 +173,8 @@ export default function CartPage() {
       }
     } catch (error) {
       console.error("Error fetching products:", error)
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -210,21 +242,20 @@ export default function CartPage() {
   const getProductImage = (item: CartItem) => {
     // 商品に画像URLがある場合はそれを使用
     if (item.imageUrl && item.imageUrl.trim() !== "") {
+      console.log(`Using image URL for ${item.item_name}: ${item.imageUrl}`)
       return item.imageUrl
     }
 
     // 商品名で一致する商品を検索
     const matchingProduct = products.find((product) => product.name === item.item_name)
-    if (matchingProduct && matchingProduct.imageUrl) {
+    if (matchingProduct && matchingProduct.imageUrl && matchingProduct.imageUrl.trim() !== "") {
+      console.log(`Found matching product with image URL for ${item.item_name}: ${matchingProduct.imageUrl}`)
       return convertGoogleDriveUrl(matchingProduct.imageUrl)
     }
 
-    // カテゴリーに基づいたプレースホルダー画像を返す
-    const category = item.item_category
-    const name = item.item_name
-
-    // COMING SOON画像を使用
-    return COMING_SOON_IMAGE_URL
+    // 画像URLがない場合はプレースホルダーを使用
+    console.log(`No image URL found for ${item.item_name}, using placeholder`)
+    return DEFAULT_PLACEHOLDER_URL
   }
 
   // 注文処理
@@ -280,7 +311,11 @@ export default function CartPage() {
           買い物を続ける
         </Button>
 
-        {cartItems.length === 0 ? (
+        {isLoading ? (
+          <div className="flex justify-center items-center py-20">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+          </div>
+        ) : cartItems.length === 0 ? (
           <div className="text-center py-12 bg-white rounded-lg shadow-sm">
             <div className="text-5xl mb-4">🛒</div>
             <h3 className="text-xl font-semibold mb-2">カートは空です</h3>
@@ -307,8 +342,8 @@ export default function CartPage() {
                             fill
                             className="object-contain p-2"
                             onError={(e) => {
-                              console.error(`Error loading image for ${item.item_name}, using fallback`)
-                              e.currentTarget.src = COMING_SOON_IMAGE_URL
+                              console.error(`Error loading image for ${item.item_name}, using placeholder`)
+                              e.currentTarget.src = DEFAULT_PLACEHOLDER_URL
                             }}
                           />
                           <Badge className="absolute -top-2 -right-2 bg-blue-600 text-xs">{item.item_category}</Badge>
@@ -439,4 +474,3 @@ export default function CartPage() {
     </div>
   )
 }
-

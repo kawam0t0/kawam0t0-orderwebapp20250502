@@ -88,10 +88,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         auth,
       })
 
-      // Available_itemsシートの範囲を修正してJ列まで含める
+      // Available_itemsシートの範囲を修正してK列まで含める
       let range = ""
       if (sheet === "Available_items") {
-        range = "Available_items!A2:K" // J列からK列に変更
+        range = "Available_items!A2:K" // K列まで取得
+        console.log("Fetching Available_items with range:", range)
       } else if (sheet === "Order_history") {
         range = "Order_history!A2:AV" // 注文履歴は広い範囲を取得
       } else if (sheet === "hirock_item_history") {
@@ -124,6 +125,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       if (sheet === "Available_items") {
         // 商品データをより効率的に処理
         const processedItems = processAvailableItems(response.data.values)
+
+        // デバッグ用：最初の数件の商品データを確認
+        console.log(
+          "Processed items sample (first 3):",
+          processedItems.slice(0, 3).map((item) => ({
+            name: item.name,
+            imageUrl: item.imageUrl,
+          })),
+        )
+
         res.status(200).json(processedItems)
       } else if (sheet === "Order_history" || sheet === "hirock_item_history") {
         // 注文履歴データを処理
@@ -163,10 +174,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
 // 商品データ処理を別関数に分離して最適化
 function processAvailableItems(rows: any[][]) {
+  console.log(`Processing ${rows.length} rows from Available_items sheet`)
+
   const groupedItems = new Map<string, GroupedItem>()
 
   // スプレッドシートの各行を処理
-  rows.forEach((row) => {
+  rows.forEach((row, index) => {
+    // 行のデータを確認
+    if (index < 5) {
+      console.log(`Row ${index} data:`, row)
+    }
+
     const [
       id,
       category,
@@ -181,6 +199,11 @@ function processAvailableItems(rows: any[][]) {
       partnerEmail,
       imageUrl,
     ] = row
+
+    // K列（imageUrl）の値を確認
+    if (index < 5) {
+      console.log(`Row ${index} imageUrl (K column):`, imageUrl)
+    }
 
     // 商品名をキーとして使用
     const key = name
@@ -205,6 +228,11 @@ function processAvailableItems(rows: any[][]) {
 
     // 修正箇所2: 必ず存在することを保証
     const item = groupedItems.get(key)! // 非nullアサーション演算子を使用
+
+    // 画像URLを更新（存在する場合のみ）
+    if (imageUrl && !item.imageUrl) {
+      item.imageUrl = imageUrl
+    }
 
     // カラーとサイズを追加（存在する場合）
     if (color) item.colors.add(color)
@@ -232,7 +260,7 @@ function processAvailableItems(rows: any[][]) {
   })
 
   // グループ化したデータを配列に変換
-  return Array.from(groupedItems.values()).map((item) => {
+  const result = Array.from(groupedItems.values()).map((item) => {
     // 数量を昇順にソート
     const sortedAmounts = Array.from(item.amounts).sort((a, b) => a - b)
 
@@ -257,6 +285,12 @@ function processAvailableItems(rows: any[][]) {
       imageUrl: item.imageUrl, // 画像URLを追加
     }
   })
+
+  // 画像URLを持つ商品の数をカウント
+  const itemsWithImages = result.filter((item) => item.imageUrl && item.imageUrl.trim() !== "").length
+  console.log(`Found ${itemsWithImages} items with image URLs out of ${result.length} total items`)
+
+  return result
 }
 
 // 特定の販促グッズリストを定義

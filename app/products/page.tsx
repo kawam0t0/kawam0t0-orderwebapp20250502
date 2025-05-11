@@ -40,6 +40,7 @@ type CartItem = {
   selectedQuantity?: number
   quantity: number
   partnerName?: string // パートナー名を追加
+  imageUrl?: string // 画像URLを追加
 }
 
 // アパレル商品かどうかを判定する関数
@@ -83,27 +84,39 @@ const HOODIE_PRICES: { [size: string]: number } = {
   XXXL: 4000,
 }
 
-// COMING SOON画像のURL
-const COMING_SOON_IMAGE_URL =
-  "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/0005720_coming-soon-page_550-GJuRp7f7JXrp3ZSP6hK2ihMLTP2abk.webp"
+// デフォルトの画像プレースホルダーURL
+const DEFAULT_PLACEHOLDER_URL = "/diverse-products-still-life.png"
 
 // Google DriveのURLを直接表示可能な形式に変換する関数
 const convertGoogleDriveUrl = (url: string): string => {
   try {
+    if (!url) return DEFAULT_PLACEHOLDER_URL
+
+    // URLが空文字列または無効な場合はプレースホルダーを返す
+    if (url.trim() === "") return DEFAULT_PLACEHOLDER_URL
+
     // Google DriveのURLかどうかを確認
-    if (url && url.includes("drive.google.com/file/d/")) {
+    if (url.includes("drive.google.com/file/d/")) {
       // ファイルIDを抽出
       const fileIdMatch = url.match(/\/d\/([^/]+)/)
       if (fileIdMatch && fileIdMatch[1]) {
         const fileId = fileIdMatch[1]
         // 直接表示可能なURLに変換
+        console.log(`Converting Google Drive URL for file ID: ${fileId}`)
         return `https://drive.google.com/uc?export=view&id=${fileId}`
       }
     }
+
+    // URLが既に変換済みかチェック
+    if (url.includes("drive.google.com/uc?export=view&id=")) {
+      return url
+    }
+
+    // その他の有効なURLはそのまま返す
     return url
   } catch (error) {
     console.error("Error converting Google Drive URL:", error)
-    return url
+    return DEFAULT_PLACEHOLDER_URL
   }
 }
 
@@ -119,25 +132,42 @@ export default function ProductsPage() {
   const [selectedSizes, setSelectedSizes] = useState<{ [key: string]: string }>({})
   const [selectedAmounts, setSelectedAmounts] = useState<{ [key: string]: number }>({})
   const [productPrices, setProductPrices] = useState<{ [key: string]: { [size: string]: number } }>({})
+  const [isLoading, setIsLoading] = useState(true)
 
   // スプレッドシートからデータを取得
   useEffect(() => {
     const fetchProducts = async () => {
+      setIsLoading(true)
       try {
+        console.log("Fetching products from API...")
         const response = await fetch("/api/sheets?sheet=Available_items")
         if (!response.ok) {
-          throw new Error("Failed to fetch products")
+          throw new Error(`Failed to fetch products: ${response.status} ${response.statusText}`)
         }
         const data = await response.json()
 
         // デバッグ用：データ構造を確認
-        console.log("Fetched products data:", data)
+        console.log("Fetched products data:", data.length, "items")
+        console.log(
+          "Sample products (first 3):",
+          data.slice(0, 3).map((p) => ({
+            name: p.name,
+            imageUrl: p.imageUrl,
+          })),
+        )
+
+        // 画像URLを持つ商品の数をカウント
+        const itemsWithImages = data.filter((p) => p.imageUrl && p.imageUrl.trim() !== "").length
+        console.log(`Found ${itemsWithImages} items with image URLs out of ${data.length} total items`)
 
         // 画像URLを変換
-        const productsWithConvertedUrls = data.map((product) => ({
-          ...product,
-          imageUrl: product.imageUrl ? convertGoogleDriveUrl(product.imageUrl) : "",
-        }))
+        const productsWithConvertedUrls = data.map((product) => {
+          const convertedUrl = product.imageUrl ? convertGoogleDriveUrl(product.imageUrl) : DEFAULT_PLACEHOLDER_URL
+          return {
+            ...product,
+            imageUrl: convertedUrl,
+          }
+        })
 
         setProducts(productsWithConvertedUrls)
 
@@ -214,6 +244,8 @@ export default function ProductsPage() {
         setProductPrices(initialPrices)
       } catch (error) {
         console.error("Error fetching products:", error)
+      } finally {
+        setIsLoading(false)
       }
     }
 
@@ -272,6 +304,7 @@ export default function ProductsPage() {
         selectedSize: size,
         quantity, // 選択された数量を設定
         partnerName: product.partnerName, // パートナー名を追加
+        imageUrl: product.imageUrl, // 画像URLを追加
       }
     }
     // 販促グッズの場合
@@ -301,6 +334,7 @@ export default function ProductsPage() {
         selectedQuantity: selectedAmount,
         quantity: isSpecialPromotionalItem ? selectedAmount : 1, // 特定の販促グッズの場合は選択された数量、それ以外は1セット
         partnerName: product.partnerName, // パートナー名を追加
+        imageUrl: product.imageUrl, // 画像URLを追加
       }
     }
     // その他の商品の場合
@@ -315,6 +349,7 @@ export default function ProductsPage() {
         lead_time: product.leadTime,
         quantity, // 選択された数量を設定
         partnerName: product.partnerName, // パートナー名を追加
+        imageUrl: product.imageUrl, // 画像URLを追加
       }
     }
 
@@ -496,23 +531,16 @@ export default function ProductsPage() {
 
   // 商品画像の取得関数
   const getProductImage = (product: Product) => {
-    // 商品に画像URLがある場合はそれを使用
+    // 画像URLが存在し、有効な場合はそれを使用
     if (product.imageUrl && product.imageUrl.trim() !== "") {
       // デバッグ用：画像URLを確認
       console.log(`Using image URL for ${product.name}: ${product.imageUrl}`)
-
-      // Google DriveのURLかどうかを確認して変換
-      if (product.imageUrl.includes("drive.google.com")) {
-        return convertGoogleDriveUrl(product.imageUrl)
-      }
-
-      // その他の画像URLはそのまま使用
       return product.imageUrl
     }
 
-    // 画像URLがない場合はCOMING SOON画像を使用
-    console.log(`Using COMING SOON image for ${product.name}`)
-    return COMING_SOON_IMAGE_URL
+    // 画像URLがない場合はプレースホルダーを使用
+    console.log(`No image URL found for ${product.name}, using placeholder`)
+    return DEFAULT_PLACEHOLDER_URL
   }
 
   // 数量選択のプルダウンを生成する関数
@@ -534,6 +562,20 @@ export default function ProductsPage() {
 
   // カテゴリーの順序を定義
   const CATEGORY_ORDER = ["すべて", "販促グッズ", "液剤"] // アパレルとクロスを削除
+
+  const [cartItems, setCartItems] = useState<CartItem[]>([])
+
+  useEffect(() => {
+    // ローカルストレージからカート情報を取得
+    const savedCart = localStorage.getItem("cart")
+    if (savedCart) {
+      try {
+        setCartItems(JSON.parse(savedCart))
+      } catch (e) {
+        console.error("Failed to parse cart data:", e)
+      }
+    }
+  }, [cart])
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
@@ -571,9 +613,9 @@ export default function ProductsPage() {
                 onClick={() => router.push("/cart")}
               >
                 <ShoppingCart className="h-6 w-6" />
-                {cart.length > 0 && (
+                {cartItems.length > 0 && (
                   <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center animate-in zoom-in duration-200">
-                    {cart.length}
+                    {cartItems.length}
                   </span>
                 )}
                 <span className="absolute invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity duration-200 bottom-full right-0 mb-2 whitespace-nowrap bg-black/75 text-white text-sm py-1 px-2 rounded">
@@ -628,199 +670,209 @@ export default function ProductsPage() {
           </div>
         </div>
 
-        {/* 商品グリッド */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {filteredProducts.map((product) => (
-            <Card
-              key={product.id}
-              className="overflow-hidden flex flex-col h-full hover:shadow-lg transition-all duration-300 border border-gray-200 rounded-xl transform hover:-translate-y-1"
-            >
-              {/* 水色の枠内に画像を表示 */}
-              <div className="relative pt-[100%] bg-gradient-to-br from-blue-50 to-cyan-50 border border-cyan-200 rounded-t-xl overflow-hidden group">
-                <Image
-                  src={getProductImage(product) || "/placeholder.svg"}
-                  alt={product.name}
-                  fill
-                  className="object-contain p-4 transition-transform duration-300 group-hover:scale-105"
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                  onError={(e) => {
-                    // 画像の読み込みエラー時にCOMING SOON画像を表示
-                    console.error(`Error loading image for ${product.name}, using fallback`)
-                    e.currentTarget.src = COMING_SOON_IMAGE_URL
-                  }}
-                />
-                <Badge className="absolute top-2 left-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-sm">
-                  {product.category}
-                </Badge>
-                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              </div>
-
-              <CardContent className="flex-grow p-4">
-                <h3 className="font-semibold text-lg mb-3 line-clamp-2 text-gray-800">{product.name}</h3>
-
-                {/* 商品カードの納期表示部分を修正 */}
-                <p className="text-sm text-green-600 mb-4 flex items-center">
-                  <span className="inline-block w-2 h-2 rounded-full bg-green-600 mr-2"></span>
-                  納期: {calculateDeliveryDate(product.leadTime, product.category)}
-                </p>
-
-                {/* アパレル商品の場合 */}
-                {isApparelItem(product.name) ? (
-                  <>
-                    {/* カラー選択 */}
-                    {product.colors && product.colors.length > 0 && (
-                      <div className="mb-3">
-                        <Select
-                          value={selectedColors[product.id]}
-                          onValueChange={(value) => handleColorChange(product.id, value)}
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="カラーを選択" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {product.colors.map((color) => (
-                              <SelectItem key={`${product.id}-color-${color}`} value={color}>
-                                {color}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    )}
-
-                    {/* サイズ選択 */}
-                    {product.sizes && product.sizes.length > 0 && (
-                      <div className="mb-3">
-                        <Select
-                          value={selectedSizes[product.id]}
-                          onValueChange={(value) => handleSizeChange(product.id, value)}
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="サイズを選択" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {product.sizes.map((size) => (
-                              <SelectItem key={`${product.id}-size-${size}`} value={size}>
-                                {size}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    )}
-
-                    {/* 数量選択（1-10枚） - アパレル商品用 */}
-                    <div className="mb-3">
-                      <Select
-                        value={String(selectedAmounts[product.id] || 1)}
-                        onValueChange={(value) => handleAmountChange(product.id, Number(value))}
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="数量を選択" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {[...Array(10)].map((_, i) => (
-                            <SelectItem key={`${product.id}-amount-${i + 1}`} value={String(i + 1)}>
-                              {i + 1}枚
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </>
-                ) : // 販促グッズの場合
-                product.category === "販促グッズ" && product.amounts && product.amounts.length > 0 ? (
-                  <div className="mb-3">
-                    <Select
-                      value={String(selectedAmounts[product.id] || product.amounts[0])}
-                      onValueChange={(value) => handleAmountChange(product.id, Number(value))}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="数量を選択" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {product.amounts.map((amount) => (
-                          <SelectItem key={`${product.id}-amount-${amount}`} value={String(amount)}>
-                            {/* 特定の販促グッズの場合は単位を「枚」に固定 */}
-                            {specialPromotionalItems.some((item) => product.name.includes(item))
-                              ? `${amount}枚`
-                              : `${amount}個`}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                ) : (
-                  // その他の商品の場合
-                  !isApparelItem(product.name) && (
-                    <div className="mb-3">
-                      <Select
-                        value={String(selectedAmounts[product.id] || 1)}
-                        onValueChange={(value) => handleAmountChange(product.id, Number(value))}
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="数量を選択" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {[...Array(10)].map((_, i) => (
-                            <SelectItem key={`${product.id}-amount-${i + 1}`} value={String(i + 1)}>
-                              {i + 1}個
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )
-                )}
-                {/* 価格表示 */}
-                <div className="mt-4">
-                  <p className="text-xl font-bold text-blue-700">¥{calculatePrice(product)}</p>
-                  {/* Tシャツとフーディの場合、サイズによって価格が変わることを表示 */}
-                  {hasSizeBasedPrice(product.name) && (
-                    <p className="text-xs text-gray-500">※サイズによって価格が変わります</p>
-                  )}
-                  {/* 販促グッズの場合、1個あたりの価格を表示 */}
-                  {product.category === "販促グッズ" && product.amounts && product.amounts.length > 0 && (
-                    <>
-                      {calculatePricePerPiece(product) && (
-                        <p className="text-xs text-gray-500">¥{calculatePricePerPiece(product)}/個</p>
-                      )}
-                    </>
-                  )}
-                </div>
-              </CardContent>
-
-              <CardFooter className="p-4 pt-0">
-                <Button
-                  className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-md py-2 transition-all duration-300 flex items-center justify-center gap-2 shadow-sm"
-                  onClick={() => addToCart(product)}
-                  disabled={isApparelItem(product.name) && (!selectedColors[product.id] || !selectedSizes[product.id])}
-                >
-                  カートに追加
-                  <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-                </Button>
-              </CardFooter>
-            </Card>
-          ))}
-        </div>
-
-        {/* 商品が見つからない場合 */}
-        {filteredProducts.length === 0 && (
-          <div className="text-center py-12 bg-white rounded-lg shadow-sm border border-gray-200">
-            <div className="text-5xl mb-4">🔍</div>
-            <h3 className="text-xl font-semibold mb-2">商品が見つかりませんでした</h3>
-            <p className="text-gray-500 mb-4">検索条件を変更するか、別のカテゴリーを選択してください</p>
-            <Button
-              variant="outline"
-              className="rounded-full px-6"
-              onClick={() => {
-                setSearchQuery("")
-                setSelectedCategory(null)
-              }}
-            >
-              すべての商品を表示
-            </Button>
+        {/* ローディング表示 */}
+        {isLoading ? (
+          <div className="flex justify-center items-center py-20">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
           </div>
+        ) : (
+          <>
+            {/* 商品グリッド */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {filteredProducts.map((product) => (
+                <Card
+                  key={product.id}
+                  className="overflow-hidden flex flex-col h-full hover:shadow-lg transition-shadow border border-gray-200 rounded-xl"
+                >
+                  {/* 水色の枠内に画像を表示 */}
+                  <div className="relative pt-[100%] bg-gray-50 border-2 border-cyan-300">
+                    <Image
+                      src={getProductImage(product) || "/placeholder.svg"}
+                      alt={product.name}
+                      fill
+                      className="object-contain p-4"
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                      onError={(e) => {
+                        // 画像の読み込みエラー時にプレースホルダーを表示
+                        console.error(`Error loading image for ${product.name}, using placeholder`)
+                        e.currentTarget.src = DEFAULT_PLACEHOLDER_URL
+                      }}
+                    />
+                    <Badge className="absolute top-2 left-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full">
+                      {product.category}
+                    </Badge>
+                  </div>
+
+                  <CardContent className="flex-grow p-4">
+                    <h3 className="font-semibold text-lg mb-3 line-clamp-2">{product.name}</h3>
+
+                    {/* 商品カードの納期表示部分を修正 */}
+                    <p className="text-sm text-green-600 mb-4 flex items-center">
+                      <span className="inline-block w-2 h-2 rounded-full bg-green-600 mr-2"></span>
+                      納期: {calculateDeliveryDate(product.leadTime, product.category)}
+                    </p>
+
+                    {/* アパレル商品の場合 */}
+                    {isApparelItem(product.name) ? (
+                      <>
+                        {/* カラー選択 */}
+                        {product.colors && product.colors.length > 0 && (
+                          <div className="mb-3">
+                            <Select
+                              value={selectedColors[product.id]}
+                              onValueChange={(value) => handleColorChange(product.id, value)}
+                            >
+                              <SelectTrigger className="w-full">
+                                <SelectValue placeholder="カラーを選択" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {product.colors.map((color) => (
+                                  <SelectItem key={`${product.id}-color-${color}`} value={color}>
+                                    {color}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
+
+                        {/* サイズ選択 */}
+                        {product.sizes && product.sizes.length > 0 && (
+                          <div className="mb-3">
+                            <Select
+                              value={selectedSizes[product.id]}
+                              onValueChange={(value) => handleSizeChange(product.id, value)}
+                            >
+                              <SelectTrigger className="w-full">
+                                <SelectValue placeholder="サイズを選択" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {product.sizes.map((size) => (
+                                  <SelectItem key={`${product.id}-size-${size}`} value={size}>
+                                    {size}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
+
+                        {/* 数量選択（1-10枚） - アパレル商品用 */}
+                        <div className="mb-3">
+                          <Select
+                            value={String(selectedAmounts[product.id] || 1)}
+                            onValueChange={(value) => handleAmountChange(product.id, Number(value))}
+                          >
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="数量を選択" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {[...Array(10)].map((_, i) => (
+                                <SelectItem key={`${product.id}-amount-${i + 1}`} value={String(i + 1)}>
+                                  {i + 1}枚
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </>
+                    ) : // 販促グッズの場合
+                    product.category === "販促グッズ" && product.amounts && product.amounts.length > 0 ? (
+                      <div className="mb-3">
+                        <Select
+                          value={String(selectedAmounts[product.id] || product.amounts[0])}
+                          onValueChange={(value) => handleAmountChange(product.id, Number(value))}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="数量を選択" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {product.amounts.map((amount) => (
+                              <SelectItem key={`${product.id}-amount-${amount}`} value={String(amount)}>
+                                {/* 特定の販促グッズの場合は単位を「枚」に固定 */}
+                                {specialPromotionalItems.some((item) => product.name.includes(item))
+                                  ? `${amount}枚`
+                                  : `${amount}個`}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    ) : (
+                      // その他の商品の場合
+                      !isApparelItem(product.name) && (
+                        <div className="mb-3">
+                          <Select
+                            value={String(selectedAmounts[product.id] || 1)}
+                            onValueChange={(value) => handleAmountChange(product.id, Number(value))}
+                          >
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="数量を選択" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {[...Array(10)].map((_, i) => (
+                                <SelectItem key={`${product.id}-amount-${i + 1}`} value={String(i + 1)}>
+                                  {i + 1}個
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )
+                    )}
+                    {/* 価格表示 */}
+                    <div className="mt-4">
+                      <p className="text-xl font-bold text-blue-700">¥{calculatePrice(product)}</p>
+                      {/* Tシャツとフーディの場合、サイズによって価格が変わることを表示 */}
+                      {hasSizeBasedPrice(product.name) && (
+                        <p className="text-xs text-gray-500">※サイズによって価格が変わります</p>
+                      )}
+                      {/* 販促グッズの場合、1個あたりの価格を表示 */}
+                      {product.category === "販促グッズ" && product.amounts && product.amounts.length > 0 && (
+                        <>
+                          {calculatePricePerPiece(product) && (
+                            <p className="text-xs text-gray-500">¥{calculatePricePerPiece(product)}/個</p>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </CardContent>
+
+                  <CardFooter className="p-4 pt-0">
+                    <Button
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-md py-2 transition-all duration-200 flex items-center justify-center gap-2"
+                      onClick={() => addToCart(product)}
+                      disabled={
+                        isApparelItem(product.name) && (!selectedColors[product.id] || !selectedSizes[product.id])
+                      }
+                    >
+                      カートに追加
+                      <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                    </Button>
+                  </CardFooter>
+                </Card>
+              ))}
+            </div>
+
+            {/* 商品が見つからない場合 */}
+            {filteredProducts.length === 0 && !isLoading && (
+              <div className="text-center py-12 bg-white rounded-lg shadow-sm border border-gray-200">
+                <div className="text-5xl mb-4">🔍</div>
+                <h3 className="text-xl font-semibold mb-2">商品が見つかりませんでした</h3>
+                <p className="text-gray-500 mb-4">検索条件を変更するか、別のカテゴリーを選択してください</p>
+                <Button
+                  variant="outline"
+                  className="rounded-full px-6"
+                  onClick={() => {
+                    setSearchQuery("")
+                    setSelectedCategory(null)
+                  }}
+                >
+                  すべての商品を表示
+                </Button>
+              </div>
+            )}
+          </>
         )}
       </main>
 
