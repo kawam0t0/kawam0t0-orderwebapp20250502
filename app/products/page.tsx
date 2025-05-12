@@ -364,7 +364,11 @@ export default function ProductsPage() {
       }
     }
     // 販促グッズの場合
-    else if (product.category === "販促グッズ" && product.amounts && product.amounts.length > 0) {
+    else if (
+      product.category === "販促グッズ" &&
+      ((product.amounts && product.amounts.length > 0) ||
+        Object.keys(FIXED_QUANTITY_ITEMS).some((item) => product.name.includes(item)))
+    ) {
       const selectedAmount = selectedAmounts[product.id]
 
       if (!selectedAmount) {
@@ -616,7 +620,7 @@ export default function ProductsPage() {
     }
 
     // 特定の販促グッズの場合は、選択された数量をそのまま使用
-    if (specialPromotionalItems.some((item) => product.name.includes(item))) {
+    if (specialPromotionalItems.some((item) => product.name.includes(item)) && product.amounts) {
       return product.amounts.map((amount) => ({
         value: amount.toString(),
         label: `${amount}枚`,
@@ -624,9 +628,9 @@ export default function ProductsPage() {
     }
 
     // その他の商品は従来通りの処理
-    return product.amounts.map((amount, index) => ({
+    return (product.amounts || []).map((amount, index) => ({
       value: amount.toString(),
-      label: `${amount}${product.name.includes("液剤") ? "本" : "枚"} (${product.prices[index]})`,
+      label: `${amount}${product.name.includes("液剤") ? "本" : "枚"} (${product.prices?.[index] || "0"})`,
     }))
   }
 
@@ -848,7 +852,7 @@ export default function ProductsPage() {
                       </>
                     ) : // 販促グッズの場合
                     product.category === "販促グッズ" &&
-                      (product.amounts?.length > 0 ||
+                      ((product.amounts && product.amounts.length > 0) ||
                         Object.keys(FIXED_QUANTITY_ITEMS).some((item) => product.name.includes(item))) ? (
                       <div className="mb-3">
                         <Select
