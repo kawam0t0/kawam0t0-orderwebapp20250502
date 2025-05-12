@@ -250,7 +250,28 @@ export default function ProductsPage() {
         const initialPrices: { [key: string]: { [size: string]: number } } = {}
 
         data.forEach((product: Product) => {
-          if (isApparelItem(product.name)) {
+          // 特定の商品に対して初期値を設定
+          const productNameLower = product.name.toLowerCase()
+
+          if (productNameLower.includes("ポイントカード")) {
+            initialAmounts[product.id] = 1000
+          } else if (productNameLower.includes("サブスクメンバーズカード")) {
+            initialAmounts[product.id] = 500
+          } else if (productNameLower.includes("サブスクフライヤー")) {
+            initialAmounts[product.id] = 500
+          } else if (productNameLower.includes("フリーチケット")) {
+            initialAmounts[product.id] = 1000
+          } else if (productNameLower.includes("クーポン券")) {
+            initialAmounts[product.id] = 1000
+          } else if (productNameLower.includes("のぼり(10枚1セット)")) {
+            initialAmounts[product.id] = 10
+          } else if (productNameLower.includes("のぼり(6枚1セット)")) {
+            initialAmounts[product.id] = 6
+          } else if (productNameLower.includes("お年賀")) {
+            initialAmounts[product.id] = 100
+          } else if (productNameLower.includes("利用規約")) {
+            initialAmounts[product.id] = 500
+          } else if (isApparelItem(product.name)) {
             if (product.colors && product.colors.length > 0) {
               initialColors[product.id] = product.colors[0]
             }
@@ -300,20 +321,10 @@ export default function ProductsPage() {
               initialPrices[product.id] = sizePriceMap
             }
           } else if (product.category === "販促グッズ") {
-            // 固定数量を持つ商品の場合
-            let initialAmountSet = false
-            for (const [itemName, quantities] of Object.entries(FIXED_QUANTITY_ITEMS)) {
-              if (product.name.includes(itemName) && quantities.length > 0) {
-                initialAmounts[product.id] = quantities[0]
-                initialAmountSet = true
-                break
-              }
-            }
-
             // 固定数量がない場合は通常の処理
-            if (!initialAmountSet && product.amounts && product.amounts.length > 0) {
+            if (product.amounts && product.amounts.length > 0) {
               initialAmounts[product.id] = product.amounts[0]
-            } else if (!initialAmountSet) {
+            } else {
               initialAmounts[product.id] = 1
             }
           } else {
@@ -547,6 +558,63 @@ export default function ProductsPage() {
 
   // 商品の価格計算
   const calculatePrice = (product: Product) => {
+    // 商品名を小文字に変換
+    const productNameLower = product.name.toLowerCase()
+
+    // ポイントカード
+    if (productNameLower.includes("ポイントカード")) {
+      const selectedAmount = selectedAmounts[product.id]
+      if (selectedAmount === 1000) return "29,370"
+      if (selectedAmount === 3000) return "46,090"
+      if (selectedAmount === 5000) return "62,920"
+    }
+
+    // サブスクメンバーズカード
+    if (productNameLower.includes("サブスクメンバーズカード")) {
+      const selectedAmount = selectedAmounts[product.id]
+      if (selectedAmount === 500) return "23,540"
+      if (selectedAmount === 1000) return "36,080"
+      if (selectedAmount === 1500) return "48,620"
+    }
+
+    // サブスクフライヤー
+    if (productNameLower.includes("サブスクフライヤー")) {
+      const selectedAmount = selectedAmounts[product.id]
+      if (selectedAmount === 500) return "6,600"
+      if (selectedAmount === 1000) return "7,370"
+      if (selectedAmount === 1500) return "8,360"
+    }
+
+    // フリーチケット
+    if (productNameLower.includes("フリーチケット")) {
+      return "23,100"
+    }
+
+    // クーポン券
+    if (productNameLower.includes("クーポン券")) {
+      return "42,680"
+    }
+
+    // のぼり(10枚1セット)
+    if (productNameLower.includes("のぼり(10枚1セット)")) {
+      return "26,620"
+    }
+
+    // のぼり(6枚1セット)
+    if (productNameLower.includes("のぼり(6枚1セット)")) {
+      return "19,140"
+    }
+
+    // お年賀
+    if (productNameLower.includes("お年賀")) {
+      return "25,000"
+    }
+
+    // 利用規約
+    if (productNameLower.includes("利用規約")) {
+      return "999,999"
+    }
+
     // アパレル商品の場合
     if (isApparelItem(product.name)) {
       const amount = selectedAmounts[product.id] || 1
@@ -648,15 +716,67 @@ export default function ProductsPage() {
 
   // 数量選択のプルダウンを生成する関数
   const generateQuantityOptions = (product) => {
-    // 特定の商品名に基づいて固定数量と価格を返す
-    for (const [itemName, options] of Object.entries(FIXED_QUANTITY_PRICE_MAP)) {
-      if (product.name.includes(itemName)) {
-        return options.map((option) => ({
-          value: option.quantity.toString(),
-          label: `${option.quantity}${product.name.includes("のぼり") ? "枚1セット" : "枚"}`,
-          price: option.price,
-        }))
-      }
+    // 商品名を小文字に変換して比較を容易にする
+    const productNameLower = product.name.toLowerCase()
+
+    // ポイントカード
+    if (productNameLower.includes("ポイントカード")) {
+      return [
+        { value: "1000", label: "1000枚", price: 29370 },
+        { value: "3000", label: "3000枚", price: 46090 },
+        { value: "5000", label: "5000枚", price: 62920 },
+      ]
+    }
+
+    // サブスクメンバーズカード
+    if (productNameLower.includes("サブスクメンバーズカード")) {
+      return [
+        { value: "500", label: "500枚", price: 23540 },
+        { value: "1000", label: "1000枚", price: 36080 },
+        { value: "1500", label: "1500枚", price: 48620 },
+      ]
+    }
+
+    // サブスクフライヤー
+    if (productNameLower.includes("サブスクフライヤー")) {
+      return [
+        { value: "500", label: "500枚", price: 6600 },
+        { value: "1000", label: "1000枚", price: 7370 },
+        { value: "1500", label: "1500枚", price: 8360 },
+      ]
+    }
+
+    // フリーチケット
+    if (productNameLower.includes("フリーチケット")) {
+      return [{ value: "1000", label: "1000枚", price: 23100 }]
+    }
+
+    // クーポン券
+    if (productNameLower.includes("クーポン券")) {
+      return [{ value: "1000", label: "1000枚", price: 42680 }]
+    }
+
+    // のぼり(10枚1セット)
+    if (productNameLower.includes("のぼり(10枚1セット)")) {
+      return [{ value: "10", label: "10枚1セット", price: 26620 }]
+    }
+
+    // のぼり(6枚1セット)
+    if (productNameLower.includes("のぼり(6枚1セット)")) {
+      return [{ value: "6", label: "6枚1セット", price: 19140 }]
+    }
+
+    // お年賀
+    if (productNameLower.includes("お年賀")) {
+      return [{ value: "100", label: "100枚", price: 25000 }]
+    }
+
+    // 利用規約
+    if (productNameLower.includes("利用規約")) {
+      return [
+        { value: "500", label: "500枚", price: 999999 },
+        { value: "1000", label: "1000枚", price: 999999 },
+      ]
     }
 
     // その他の商品は従来通りの処理
@@ -947,7 +1067,7 @@ export default function ProductsPage() {
                     {/* 価格表示 */}
                     <div className="mt-4">
                       <p className="text-xl font-bold text-blue-700">¥{calculatePrice(product)}</p>
-                      {/* Tシャツとフーディの場合、サイズによって価���が変わることを表示 */}
+                      {/* Tシャツとフーディの場合、サイズによって価格が変わることを表示 */}
                       {hasSizeBasedPrice(product.name) && (
                         <p className="text-xs text-gray-500">※サイズによって価格が変わります</p>
                       )}
