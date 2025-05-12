@@ -252,24 +252,34 @@ export default function ProductsPage() {
         data.forEach((product: Product) => {
           // 特定の商品に対して初期値を設定
           const productNameLower = product.name.toLowerCase()
+          console.log(`Setting initial amount for: ${product.name}`)
 
-          if (productNameLower.includes("ポイントカード")) {
+          if (/ポイントカード/i.test(product.name)) {
+            console.log(`Setting initial amount for ポイントカード: 1000`)
             initialAmounts[product.id] = 1000
           } else if (productNameLower.includes("サブスクメンバーズカード")) {
+            console.log(`Setting initial amount for サブスクメンバーズカード: 500`)
             initialAmounts[product.id] = 500
           } else if (productNameLower.includes("サブスクフライヤー")) {
+            console.log(`Setting initial amount for サブスクフライヤー: 500`)
             initialAmounts[product.id] = 500
           } else if (productNameLower.includes("フリーチケット")) {
+            console.log(`Setting initial amount for フリーチケット: 1000`)
             initialAmounts[product.id] = 1000
           } else if (productNameLower.includes("クーポン券")) {
+            console.log(`Setting initial amount for クーポン券: 1000`)
             initialAmounts[product.id] = 1000
           } else if (productNameLower.includes("のぼり(10枚1セット)")) {
+            console.log(`Setting initial amount for のぼり(10枚1セット): 10`)
             initialAmounts[product.id] = 10
           } else if (productNameLower.includes("のぼり(6枚1セット)")) {
+            console.log(`Setting initial amount for のぼり(6枚1セット): 6`)
             initialAmounts[product.id] = 6
           } else if (productNameLower.includes("お年賀")) {
+            console.log(`Setting initial amount for お年賀: 100`)
             initialAmounts[product.id] = 100
           } else if (productNameLower.includes("利用規約")) {
+            console.log(`Setting initial amount for 利用規約: 500`)
             initialAmounts[product.id] = 500
           } else if (isApparelItem(product.name)) {
             if (product.colors && product.colors.length > 0) {
@@ -557,7 +567,7 @@ export default function ProductsPage() {
     return matchesCategory && matchesSearch
   })
 
-  // 商品���価格計算
+  // 商品の価格計算
   const calculatePrice = (product: Product) => {
     // 商品名を小文字に変換
     const productNameLower = product.name.toLowerCase()
@@ -717,11 +727,21 @@ export default function ProductsPage() {
 
   // 数量選択のプルダウンを生成する関数
   const generateQuantityOptions = (product) => {
+    // デバッグログ: 関数が呼び出されたことを確認
+    console.log(`generateQuantityOptions called for product: ${product.name}`, {
+      category: product.category,
+      id: product.id,
+    })
+
     // 商品名を小文字に変換して比較を容易にする
     const productNameLower = product.name.toLowerCase()
 
+    // 各商品タイプの条件をチェック
+    console.log(`Checking product name: "${productNameLower}"`)
+
     // ポイントカード
-    if (productNameLower.includes("ポイントカード")) {
+    if (/ポイントカード/i.test(product.name)) {
+      console.log(`Match found: ポイントカード for ${product.name}`)
       return [
         { value: "1000", label: "1000枚", price: 29370 },
         { value: "3000", label: "3000枚", price: 46090 },
@@ -730,7 +750,8 @@ export default function ProductsPage() {
     }
 
     // サブスクメンバーズカード
-    if (productNameLower.includes("サブスクメンバーズカード")) {
+    if (/サブスクメンバーズカード/i.test(product.name)) {
+      console.log(`Match found: サブスクメンバーズカード for ${product.name}`)
       return [
         { value: "500", label: "500枚", price: 23540 },
         { value: "1000", label: "1000枚", price: 36080 },
@@ -739,7 +760,8 @@ export default function ProductsPage() {
     }
 
     // サブスクフライヤー
-    if (productNameLower.includes("サブスクフライヤー")) {
+    if (/サブスクフライヤー/i.test(product.name)) {
+      console.log(`Match found: サブスクフライヤー for ${product.name}`)
       return [
         { value: "500", label: "500枚", price: 6600 },
         { value: "1000", label: "1000枚", price: 7370 },
@@ -748,32 +770,38 @@ export default function ProductsPage() {
     }
 
     // フリーチケット
-    if (productNameLower.includes("フリーチケット")) {
+    if (/フリーチケット/i.test(product.name)) {
+      console.log(`Match found: フリーチケット for ${product.name}`)
       return [{ value: "1000", label: "1000枚", price: 23100 }]
     }
 
     // クーポン券
-    if (productNameLower.includes("クーポン券")) {
+    if (/クーポン券/i.test(product.name)) {
+      console.log(`Match found: クーポン券 for ${product.name}`)
       return [{ value: "1000", label: "1000枚", price: 42680 }]
     }
 
     // のぼり(10枚1セット)
-    if (productNameLower.includes("のぼり(10枚1セット)")) {
+    if (/のぼり$$10枚1セット$$/i.test(product.name)) {
+      console.log(`Match found: のぼり(10枚1セット) for ${product.name}`)
       return [{ value: "10", label: "10枚1セット", price: 26620 }]
     }
 
     // のぼり(6枚1セット)
-    if (productNameLower.includes("のぼり(6枚1セット)")) {
+    if (/のぼり$$6枚1セット$$/i.test(product.name)) {
+      console.log(`Match found: のぼり(6枚1セット) for ${product.name}`)
       return [{ value: "6", label: "6枚1セット", price: 19140 }]
     }
 
     // お年賀
-    if (productNameLower.includes("お年賀")) {
+    if (/お年賀/i.test(product.name)) {
+      console.log(`Match found: お年賀 for ${product.name}`)
       return [{ value: "100", label: "100枚", price: 25000 }]
     }
 
     // 利用規約
-    if (productNameLower.includes("利用規約")) {
+    if (/利用規約/i.test(product.name)) {
+      console.log(`Match found: 利用規約 for ${product.name}`)
       return [
         { value: "500", label: "500枚", price: 999999 },
         { value: "1000", label: "1000枚", price: 999999 },
@@ -1013,44 +1041,61 @@ export default function ProductsPage() {
                           </Select>
                         </div>
                       </>
-                    ) : // 販促グッズの場合
-                    product.category === "販促グッズ" ? (
-                      <div className="mb-3">
-                        <Select
-                          value={String(selectedAmounts[product.id] || 1)}
-                          onValueChange={(value) => handleAmountChange(product.id, Number(value))}
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="数量を選択" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {generateQuantityOptions(product).map((option) => (
-                              <SelectItem key={`${product.id}-amount-${option.value}`} value={option.value}>
-                                {option.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
                     ) : (
-                      // その他の商品の場合
-                      <div className="mb-3">
-                        <Select
-                          value={String(selectedAmounts[product.id] || 1)}
-                          onValueChange={(value) => handleAmountChange(product.id, Number(value))}
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="数量を選択" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {[...Array(10)].map((_, i) => (
-                              <SelectItem key={`${product.id}-amount-${i + 1}`} value={String(i + 1)}>
-                                {i + 1}個
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
+                      // 販促グッズの場合
+                      (() => {
+                        // デバッグ用: 条件チェックの結果をログ出力
+                        const isPromo = product.category === "販促グッズ"
+                        console.log(`Product ${product.name} - isPromo: ${isPromo}`)
+
+                        if (isPromo) {
+                          // 選択肢を生成してログ出力
+                          const options = generateQuantityOptions(product)
+                          console.log(`Generated options for ${product.name}:`, options)
+
+                          return (
+                            <div className="mb-3">
+                              <Select
+                                value={String(selectedAmounts[product.id] || 1)}
+                                onValueChange={(value) => handleAmountChange(product.id, Number(value))}
+                              >
+                                <SelectTrigger className="w-full">
+                                  <SelectValue placeholder="数量を選択" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {options.map((option) => (
+                                    <SelectItem key={`${product.id}-amount-${option.value}`} value={option.value}>
+                                      {option.label}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          )
+                        } else if (!isApparelItem(product.name)) {
+                          // その他の商品の場合
+                          return (
+                            <div className="mb-3">
+                              <Select
+                                value={String(selectedAmounts[product.id] || 1)}
+                                onValueChange={(value) => handleAmountChange(product.id, Number(value))}
+                              >
+                                <SelectTrigger className="w-full">
+                                  <SelectValue placeholder="数量を選択" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {[...Array(10)].map((_, i) => (
+                                    <SelectItem key={`${product.id}-amount-${i + 1}`} value={String(i + 1)}>
+                                      {i + 1}個
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          )
+                        }
+                        return null
+                      })()
                     )}
                     {/* 価格表示 */}
                     <div className="mt-4">
