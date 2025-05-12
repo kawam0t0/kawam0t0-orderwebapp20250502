@@ -10,7 +10,15 @@ import { CategoryTabs } from "./category-tabs"
 import { CategoryOrders } from "./category-orders"
 
 // 除外するアイテムリスト
-const EXCLUDED_ITEMS = ["スプシャン", "スプワックス", "スプコート", "セラミック", "スプタイヤ", "マイクロファイバー"]
+const EXCLUDED_ITEMS = [
+  "スプシャン",
+  "スプワックス",
+  "スプコート",
+  "セラミック",
+  "スプタイヤ",
+  "マイクロファイバー",
+  "ピッカークロス",
+]
 
 // 注文アイテムの型定義
 type OrderItem = {
@@ -64,6 +72,8 @@ const getStatusColor = (status: string) => {
   switch (status) {
     case "処理中":
       return "bg-blue-100 text-blue-800"
+    case "対応中":
+      return "bg-yellow-100 text-yellow-800"
     case "出荷済み":
       return "bg-green-100 text-green-800"
     default:
