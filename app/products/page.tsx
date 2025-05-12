@@ -80,7 +80,34 @@ const FIXED_QUANTITY_ITEMS = {
   利用規約: [500, 1000],
 }
 
-// サイズによって価格が変わる商品かどうかを判定する関数の後に、ハードコードされた価格情報を追加します
+// 固定数量と価格のマッピング
+const FIXED_QUANTITY_PRICE_MAP = {
+  ポイントカード: [
+    { quantity: 1000, price: 29370 },
+    { quantity: 3000, price: 46090 },
+    { quantity: 5000, price: 62920 },
+  ],
+  サブスクメンバーズカード: [
+    { quantity: 500, price: 23540 },
+    { quantity: 1000, price: 36080 },
+    { quantity: 1500, price: 48620 },
+  ],
+  サブスクフライヤー: [
+    { quantity: 500, price: 6600 },
+    { quantity: 1000, price: 7370 },
+    { quantity: 1500, price: 8360 },
+  ],
+  フリーチケット: [{ quantity: 1000, price: 23100 }],
+  クーポン券: [{ quantity: 1000, price: 42680 }],
+  "のぼり(10枚1セット)": [{ quantity: 10, price: 26620 }],
+  "のぼり(6枚1セット)": [{ quantity: 6, price: 19140 }],
+  お年賀: [{ quantity: 100, price: 25000 }],
+  利用規約: [
+    { quantity: 500, price: 999999 },
+    { quantity: 1000, price: 999999 },
+  ],
+}
+
 // Tシャツのサイズごとの価格を定義（フォールバック用）
 const TSHIRT_PRICES: { [size: string]: number } = {
   M: 1810,
@@ -367,7 +394,7 @@ export default function ProductsPage() {
     else if (
       product.category === "販促グッズ" &&
       ((product.amounts && product.amounts.length > 0) ||
-        Object.keys(FIXED_QUANTITY_ITEMS).some((item) => product.name.includes(item)))
+        Object.keys(FIXED_QUANTITY_PRICE_MAP).some((item) => product.name.includes(item)))
     ) {
       const selectedAmount = selectedAmounts[product.id]
 
@@ -376,11 +403,24 @@ export default function ProductsPage() {
         return
       }
 
-      // 選択した数量のインデックスを見つける
-      const amountIndex = product.amounts ? product.amounts.findIndex((amount) => amount === selectedAmount) : -1
+      // 固定数量と価格のマッピングを使用
+      let selectedPrice = "0"
+      for (const [itemName, options] of Object.entries(FIXED_QUANTITY_PRICE_MAP)) {
+        if (product.name.includes(itemName)) {
+          const option = options.find((opt) => opt.quantity === selectedAmount)
+          if (option) {
+            selectedPrice = option.price.toString()
+          }
+        }
+      }
 
-      // 対応する価格を取得
-      const selectedPrice = product.prices && amountIndex !== -1 ? product.prices[amountIndex] : "0"
+      // 固定価格が見つからない場合は通常の処理
+      if (selectedPrice === "0" && product.amounts) {
+        const amountIndex = product.amounts.findIndex((amount) => amount === selectedAmount)
+        if (amountIndex !== -1 && product.prices && product.prices[amountIndex]) {
+          selectedPrice = product.prices[amountIndex]
+        }
+      }
 
       // 特定の販促グッズの場合は、selectedQuantity と quantity の両方に選択された数量を設定
       const isSpecialPromotionalItem = specialPromotionalItems.some((name) => product.name.includes(name))
@@ -538,13 +578,12 @@ export default function ProductsPage() {
       const selectedAmount = selectedAmounts[product.id]
       if (!selectedAmount) return "価格未定"
 
-      // 固定数量を持つ商品の場合
-      for (const [itemName, quantities] of Object.entries(FIXED_QUANTITY_ITEMS)) {
+      // 固定数量と価格のマッピングを使用
+      for (const [itemName, options] of Object.entries(FIXED_QUANTITY_PRICE_MAP)) {
         if (product.name.includes(itemName)) {
-          // 選択された数量のインデックスを見つける
-          const quantityIndex = quantities.findIndex((q) => q === selectedAmount)
-          if (quantityIndex !== -1 && product.prices && product.prices[quantityIndex]) {
-            return Number(product.prices[quantityIndex].replace(/[^0-9.-]+/g, "")).toLocaleString()
+          const option = options.find((opt) => opt.quantity === selectedAmount)
+          if (option) {
+            return option.price.toLocaleString()
           }
         }
       }
@@ -609,52 +648,15 @@ export default function ProductsPage() {
 
   // 数量選択のプルダウンを生成する関数
   const generateQuantityOptions = (product) => {
-    // 特定の商品名に基づいて固定数量を返す
-    if (product.name.includes("ポイントカード")) {
-      return [1000, 3000, 5000].map((amount) => ({
-        value: amount.toString(),
-        label: `${amount}枚`,
-      }))
-    } else if (product.name.includes("サブスクメンバーズカード")) {
-      return [500, 1000, 1500].map((amount) => ({
-        value: amount.toString(),
-        label: `${amount}枚`,
-      }))
-    } else if (product.name.includes("サブスクフライヤー")) {
-      return [500, 1000, 1500].map((amount) => ({
-        value: amount.toString(),
-        label: `${amount}枚`,
-      }))
-    } else if (product.name.includes("フリーチケット")) {
-      return [1000].map((amount) => ({
-        value: amount.toString(),
-        label: `${amount}枚`,
-      }))
-    } else if (product.name.includes("クーポン券")) {
-      return [1000].map((amount) => ({
-        value: amount.toString(),
-        label: `${amount}枚`,
-      }))
-    } else if (product.name.includes("のぼり(10枚1セット)")) {
-      return [10].map((amount) => ({
-        value: amount.toString(),
-        label: `${amount}枚1セット`,
-      }))
-    } else if (product.name.includes("のぼり(6枚1セット)")) {
-      return [6].map((amount) => ({
-        value: amount.toString(),
-        label: `${amount}枚1セット`,
-      }))
-    } else if (product.name.includes("お年賀")) {
-      return [100].map((amount) => ({
-        value: amount.toString(),
-        label: `${amount}枚`,
-      }))
-    } else if (product.name.includes("利用規約")) {
-      return [500, 1000].map((amount) => ({
-        value: amount.toString(),
-        label: `${amount}枚`,
-      }))
+    // 特定の商品名に基づいて固定数量と価格を返す
+    for (const [itemName, options] of Object.entries(FIXED_QUANTITY_PRICE_MAP)) {
+      if (product.name.includes(itemName)) {
+        return options.map((option) => ({
+          value: option.quantity.toString(),
+          label: `${option.quantity}${product.name.includes("のぼり") ? "枚1セット" : "枚"}`,
+          price: option.price,
+        }))
+      }
     }
 
     // その他の商品は従来通りの処理
@@ -662,6 +664,7 @@ export default function ProductsPage() {
       return product.amounts.map((amount, index) => ({
         value: amount.toString(),
         label: `${amount}${product.name.includes("液剤") ? "本" : "枚"} (${product.prices?.[index] || "0"})`,
+        price: product.prices && product.prices[index] ? Number(product.prices[index].replace(/[^0-9.-]+/g, "")) : 0,
       }))
     }
 
@@ -669,6 +672,7 @@ export default function ProductsPage() {
     return [...Array(10)].map((_, i) => ({
       value: (i + 1).toString(),
       label: `${i + 1}${product.name.includes("液剤") ? "本" : "枚"}`,
+      price: 0,
     }))
   }
 
@@ -943,7 +947,7 @@ export default function ProductsPage() {
                     {/* 価格表示 */}
                     <div className="mt-4">
                       <p className="text-xl font-bold text-blue-700">¥{calculatePrice(product)}</p>
-                      {/* Tシャツとフーディの場合、サイズによって価格が変わることを表示 */}
+                      {/* Tシャツとフーディの場合、サイズによって価���が変わることを表示 */}
                       {hasSizeBasedPrice(product.name) && (
                         <p className="text-xs text-gray-500">※サイズによって価格が変わります</p>
                       )}
