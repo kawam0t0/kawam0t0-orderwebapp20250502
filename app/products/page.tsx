@@ -64,7 +64,21 @@ const specialPromotionalItems = [
   "名刺",
   "のぼり",
   "お年賀(マイクロファイバークロス)",
+  "利用規約",
 ]
+
+// 固定数量を持つ商品の定義
+const FIXED_QUANTITY_ITEMS = {
+  ポイントカード: [1000, 3000, 5000],
+  サブスクメンバーズカード: [500, 1000, 1500],
+  サブスクフライヤー: [500, 1000, 1500],
+  フリーチケット: [1000],
+  クーポン券: [1000],
+  "のぼり(10枚1セット)": [10],
+  "のぼり(6枚1セット)": [6],
+  "お年賀(マイクロファイバークロス)": [100],
+  利用規約: [500, 1000],
+}
 
 // サイズによって価格が変わる商品かどうかを判定する関数の後に、ハードコードされた価格情報を追加します
 // Tシャツのサイズごとの価格を定義（フォールバック用）
@@ -258,8 +272,23 @@ export default function ProductsPage() {
 
               initialPrices[product.id] = sizePriceMap
             }
-          } else if (product.category === "販促グッズ" && product.amounts && product.amounts.length > 0) {
-            initialAmounts[product.id] = product.amounts[0]
+          } else if (product.category === "販促グッズ") {
+            // 固定数量を持つ商品の場合
+            let initialAmountSet = false
+            for (const [itemName, quantities] of Object.entries(FIXED_QUANTITY_ITEMS)) {
+              if (product.name.includes(itemName) && quantities.length > 0) {
+                initialAmounts[product.id] = quantities[0]
+                initialAmountSet = true
+                break
+              }
+            }
+
+            // 固定数量がない場合は通常の処理
+            if (!initialAmountSet && product.amounts && product.amounts.length > 0) {
+              initialAmounts[product.id] = product.amounts[0]
+            } else if (!initialAmountSet) {
+              initialAmounts[product.id] = 1
+            }
           } else {
             initialAmounts[product.id] = 1
           }
@@ -501,17 +530,30 @@ export default function ProductsPage() {
       return (basePrice * amount).toLocaleString()
     }
     // 販促グッズの場合
-    else if (product.category === "販促グッズ" && product.amounts && product.amounts.length > 0) {
+    else if (product.category === "販促グッズ") {
       const selectedAmount = selectedAmounts[product.id]
       if (!selectedAmount) return "価格未定"
 
-      const amountIndex = product.amounts.findIndex((amount) => amount === selectedAmount)
-
-      if (amountIndex !== -1 && product.prices && product.prices[amountIndex]) {
-        return Number(product.prices[amountIndex].replace(/[^0-9.-]+/g, "")).toLocaleString()
-      } else {
-        return "価格未定"
+      // 固定数量を持つ商品の場合
+      for (const [itemName, quantities] of Object.entries(FIXED_QUANTITY_ITEMS)) {
+        if (product.name.includes(itemName)) {
+          // 選択された数量のインデックスを見つける
+          const quantityIndex = quantities.findIndex((q) => q === selectedAmount)
+          if (quantityIndex !== -1 && product.prices && product.prices[quantityIndex]) {
+            return Number(product.prices[quantityIndex].replace(/[^0-9.-]+/g, "")).toLocaleString()
+          }
+        }
       }
+
+      // 通常の販促グッズの場合
+      if (product.amounts && product.amounts.length > 0) {
+        const amountIndex = product.amounts.findIndex((amount) => amount === selectedAmount)
+        if (amountIndex !== -1 && product.prices && product.prices[amountIndex]) {
+          return Number(product.prices[amountIndex].replace(/[^0-9.-]+/g, "")).toLocaleString()
+        }
+      }
+
+      return "価格未定"
     }
     // その他の商品の場合
     else {
@@ -563,6 +605,16 @@ export default function ProductsPage() {
 
   // 数量選択のプルダウンを生成する関数
   const generateQuantityOptions = (product) => {
+    // 固定数量を持つ商品の場合
+    for (const [itemName, quantities] of Object.entries(FIXED_QUANTITY_ITEMS)) {
+      if (product.name.includes(itemName)) {
+        return quantities.map((amount) => ({
+          value: amount.toString(),
+          label: `${amount}${product.name.includes("のぼり") ? "枚1セット" : "枚"}`,
+        }))
+      }
+    }
+
     // 特定の販促グッズの場合は、選択された数量をそのまま使用
     if (specialPromotionalItems.some((item) => product.name.includes(item))) {
       return product.amounts.map((amount) => ({
@@ -795,22 +847,30 @@ export default function ProductsPage() {
                         </div>
                       </>
                     ) : // 販促グッズの場合
-                    product.category === "販促グッズ" && product.amounts && product.amounts.length > 0 ? (
+                    product.category === "販促グッズ" &&
+                      (product.amounts?.length > 0 ||
+                        Object.keys(FIXED_QUANTITY_ITEMS).some((item) => product.name.includes(item))) ? (
                       <div className="mb-3">
                         <Select
-                          value={String(selectedAmounts[product.id] || product.amounts[0])}
+                          value={String(
+                            selectedAmounts[product.id] ||
+                              // 固定数量を持つ商品の場合はその最初の値を使用
+                              Object.entries(FIXED_QUANTITY_ITEMS).find(([key]) =>
+                                product.name.includes(key),
+                              )?.[1][0] ||
+                              // それ以外は通常の処理
+                              product.amounts?.[0] ||
+                              1,
+                          )}
                           onValueChange={(value) => handleAmountChange(product.id, Number(value))}
                         >
                           <SelectTrigger className="w-full">
                             <SelectValue placeholder="数量を選択" />
                           </SelectTrigger>
                           <SelectContent>
-                            {product.amounts.map((amount) => (
-                              <SelectItem key={`${product.id}-amount-${amount}`} value={String(amount)}>
-                                {/* 特定の販促グッズの場合は単位を「枚」に固定 */}
-                                {specialPromotionalItems.some((item) => product.name.includes(item))
-                                  ? `${amount}枚`
-                                  : `${amount}個`}
+                            {generateQuantityOptions(product).map((option) => (
+                              <SelectItem key={`${product.id}-amount-${option.value}`} value={option.value}>
+                                {option.label}
                               </SelectItem>
                             ))}
                           </SelectContent>
