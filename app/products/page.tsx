@@ -65,6 +65,7 @@ const specialPromotionalItems = [
   "のぼり",
   "お年賀",
   "利用規約",
+  "ピッカークロス",
 ]
 
 // 3週間後の納期を表示する商品リスト
@@ -118,6 +119,11 @@ const FIXED_QUANTITY_PRICE_MAP = {
   利用規約: [
     { quantity: 500, label: "500枚", price: 999999 },
     { quantity: 1000, label: "1000枚", price: 999999 },
+  ],
+  ピッカークロス: [
+    { quantity: 400, label: "400枚", price: 30000 },
+    { quantity: 800, label: "800枚", price: 60000 },
+    { quantity: 1200, label: "1200枚", price: 90000 },
   ],
 }
 
@@ -288,6 +294,8 @@ export default function ProductsPage() {
             initialAmounts[product.id] = 100
           } else if (isSpecificProduct(product.name, "利用規約")) {
             initialAmounts[product.id] = 500
+          } else if (isSpecificProduct(product.name, "ピッカークロス")) {
+            initialAmounts[product.id] = 400
           } else if (isApparelItem(product.name)) {
             if (product.colors && product.colors.length > 0) {
               initialColors[product.id] = product.colors[0]
@@ -609,6 +617,13 @@ export default function ProductsPage() {
       return "999,999"
     }
 
+    if (isSpecificProduct(product.name, "ピッカークロス")) {
+      const selectedAmount = selectedAmounts[product.id]
+      if (selectedAmount === 400) return "30,000"
+      if (selectedAmount === 800) return "60,000"
+      if (selectedAmount === 1200) return "90,000"
+    }
+
     // アパレル商品の場合
     if (isApparelItem(product.name)) {
       const amount = selectedAmounts[product.id] || 1
@@ -731,6 +746,14 @@ export default function ProductsPage() {
       return [
         { value: "500", label: "500枚", price: 999999 },
         { value: "1000", label: "1000枚", price: 999999 },
+      ]
+    }
+
+    if (isSpecificProduct(product.name, "ピッカークロス")) {
+      return [
+        { value: "400", label: "400枚", price: 30000 },
+        { value: "800", label: "800枚", price: 60000 },
+        { value: "1200", label: "1200枚", price: 90000 },
       ]
     }
 
