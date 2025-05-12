@@ -18,6 +18,30 @@ type GroupedItem = {
   imageUrl: string // 画像URLを追加
 }
 
+// Google DriveのURLを直接表示可能な形式に変換する関数
+function convertGoogleDriveUrl(url: string): string {
+  try {
+    if (!url) return ""
+
+    // Google DriveのURLかどうかを確認（view形式）
+    if (url.includes("drive.google.com/file/d/")) {
+      // ファイルIDを抽出
+      const fileIdMatch = url.match(/\/d\/([^/]+)/)
+      if (fileIdMatch && fileIdMatch[1]) {
+        const fileId = fileIdMatch[1]
+        // 直接表示可能なURLに変換
+        console.log(`Converting Google Drive URL for file ID: ${fileId}`)
+        return `https://drive.google.com/uc?export=view&id=${fileId}`
+      }
+    }
+
+    return url
+  } catch (error) {
+    console.error("Error converting Google Drive URL:", error)
+    return ""
+  }
+}
+
 async function getAuthToken() {
   // 環境変数チェックを追加し、エラーメッセージを改善
   if (!process.env.GOOGLE_APPLICATION_CREDENTIALS && !process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
@@ -185,20 +209,17 @@ function processAvailableItems(rows: any[][]) {
       console.log(`Row ${index} data:`, row)
     }
 
-    const [
-      id,
-      category,
-      name,
-      color,
-      size,
-      amount,
-      price,
-      pricePerPiece,
-      leadTime,
-      partnerName,
-      partnerEmail,
-      imageUrl,
-    ] = row
+    const category = row[0] || "" // A列: カテゴリ
+    const name = row[2] || "" // C列: 商品名（修正：B列ではなくC列から取得）
+    const color = row[3] || ""
+    const size = row[4] || ""
+    const amount = row[5] || ""
+    const price = row[6] || ""
+    const pricePerPiece = row[7] || ""
+    const leadTime = row[8] || ""
+    const partnerName = row[8] || "" // I列: パートナー名
+    const partnerEmail = row[9] || "" // J列: パートナーメールアドレス
+    const imageUrl = row[10] || "" // K列: 画像URL
 
     // K列（imageUrl）の値を確認
     if (index < 5) {
@@ -207,6 +228,7 @@ function processAvailableItems(rows: any[][]) {
 
     // 商品名をキーとして使用
     const key = name
+    const id = Math.random().toString(36).substring(2, 9)
 
     if (!groupedItems.has(key)) {
       // 新しい商品の場合、初期データを設定
@@ -222,7 +244,7 @@ function processAvailableItems(rows: any[][]) {
         leadTime: leadTime || "2週間",
         partnerName: partnerName || "",
         partnerEmail: partnerEmail || "", // パートナーのメールアドレス
-        imageUrl: imageUrl || "", // 画像URLを追加
+        imageUrl: imageUrl ? convertGoogleDriveUrl(imageUrl) : "", // 画像URLを変換して追加
       })
     }
 

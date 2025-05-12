@@ -69,7 +69,7 @@ const convertGoogleDriveUrl = (url: string): string => {
     // URLが空文字列または無効な場合はプレースホルダーを返す
     if (url.trim() === "") return DEFAULT_PLACEHOLDER_URL
 
-    // Google DriveのURLかどうかを確認
+    // Google DriveのURLかどうかを確認（view形式）
     if (url.includes("drive.google.com/file/d/")) {
       // ファイルIDを抽出
       const fileIdMatch = url.match(/\/d\/([^/]+)/)
