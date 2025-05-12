@@ -76,7 +76,7 @@ const FIXED_QUANTITY_ITEMS = {
   クーポン券: [1000],
   "のぼり(10枚1セット)": [10],
   "のぼり(6枚1セット)": [6],
-  "お年賀(マイクロファイバークロス)": [100],
+  お年賀: [100],
   利用規約: [500, 1000],
 }
 
@@ -609,28 +609,66 @@ export default function ProductsPage() {
 
   // 数量選択のプルダウンを生成する関数
   const generateQuantityOptions = (product) => {
-    // 固定数量を持つ商品の場合
-    for (const [itemName, quantities] of Object.entries(FIXED_QUANTITY_ITEMS)) {
-      if (product.name.includes(itemName)) {
-        return quantities.map((amount) => ({
-          value: amount.toString(),
-          label: `${amount}${product.name.includes("のぼり") ? "枚1セット" : "枚"}`,
-        }))
-      }
-    }
-
-    // 特定の販促グッズの場合は、選択された数量をそのまま使用
-    if (specialPromotionalItems.some((item) => product.name.includes(item)) && product.amounts) {
-      return product.amounts.map((amount) => ({
+    // 特定の商品名に基づいて固定数量を返す
+    if (product.name.includes("ポイントカード")) {
+      return [1000, 3000, 5000].map((amount) => ({
+        value: amount.toString(),
+        label: `${amount}枚`,
+      }))
+    } else if (product.name.includes("サブスクメンバーズカード")) {
+      return [500, 1000, 1500].map((amount) => ({
+        value: amount.toString(),
+        label: `${amount}枚`,
+      }))
+    } else if (product.name.includes("サブスクフライヤー")) {
+      return [500, 1000, 1500].map((amount) => ({
+        value: amount.toString(),
+        label: `${amount}枚`,
+      }))
+    } else if (product.name.includes("フリーチケット")) {
+      return [1000].map((amount) => ({
+        value: amount.toString(),
+        label: `${amount}枚`,
+      }))
+    } else if (product.name.includes("クーポン券")) {
+      return [1000].map((amount) => ({
+        value: amount.toString(),
+        label: `${amount}枚`,
+      }))
+    } else if (product.name.includes("のぼり(10枚1セット)")) {
+      return [10].map((amount) => ({
+        value: amount.toString(),
+        label: `${amount}枚1セット`,
+      }))
+    } else if (product.name.includes("のぼり(6枚1セット)")) {
+      return [6].map((amount) => ({
+        value: amount.toString(),
+        label: `${amount}枚1セット`,
+      }))
+    } else if (product.name.includes("お年賀")) {
+      return [100].map((amount) => ({
+        value: amount.toString(),
+        label: `${amount}枚`,
+      }))
+    } else if (product.name.includes("利用規約")) {
+      return [500, 1000].map((amount) => ({
         value: amount.toString(),
         label: `${amount}枚`,
       }))
     }
 
     // その他の商品は従来通りの処理
-    return (product.amounts || []).map((amount, index) => ({
-      value: amount.toString(),
-      label: `${amount}${product.name.includes("液剤") ? "本" : "枚"} (${product.prices?.[index] || "0"})`,
+    if (product.amounts && product.amounts.length > 0) {
+      return product.amounts.map((amount, index) => ({
+        value: amount.toString(),
+        label: `${amount}${product.name.includes("液剤") ? "本" : "枚"} (${product.prices?.[index] || "0"})`,
+      }))
+    }
+
+    // デフォルトの選択肢（1-10）
+    return [...Array(10)].map((_, i) => ({
+      value: (i + 1).toString(),
+      label: `${i + 1}${product.name.includes("液剤") ? "本" : "枚"}`,
     }))
   }
 
