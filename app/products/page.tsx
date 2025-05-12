@@ -82,6 +82,7 @@ const threeWeeksDeliveryItems = [
   "のぼり",
   "お年賀",
   "利用規約",
+  "ピッカークロス",
 ]
 
 // 3日後の納期を表示する商品リスト
@@ -775,7 +776,7 @@ export default function ProductsPage() {
   }
 
   // カテゴリーの順序を定義
-  const CATEGORY_ORDER = ["すべて", "販促グッズ", "液剤"] // アパレルとクロスを削除
+  const CATEGORY_ORDER = ["すべて"] // 「販促グッズ」と「液剤」を削除
 
   const [cartItems, setCartItems] = useState<CartItem[]>([])
 

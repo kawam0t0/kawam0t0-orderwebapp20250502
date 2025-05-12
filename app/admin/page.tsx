@@ -316,8 +316,17 @@ export default function AdminPage() {
           <div className="text-center py-12">
             <Package className="h-16 w-16 mx-auto text-gray-300 mb-4" />
             <h2 className="text-xl font-semibold text-gray-700 mb-2">発注履歴がありません</h2>
-            <p className="text-gray-500 mb-6">まだ発注履歴がありません。商品を注文してみましょう。</p>
-            <Button onClick={() => router.push("/products")}>商品を見る</Button>
+            <p className="text-gray-500 mb-6">まだ発注履歴がありません。</p>
+            <Button
+              onClick={() => {
+                localStorage.removeItem("storeInfo")
+                router.push("/login")
+              }}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              ログアウト
+            </Button>
           </div>
         ) : (
           <>
