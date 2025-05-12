@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { ChevronLeft, Package } from "lucide-react"
+import { Package, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { format, parseISO, isValid } from "date-fns"
 import { ja } from "date-fns/locale"
@@ -88,6 +88,7 @@ export default function AdminPage() {
   const [activeCategory, setActiveCategory] = useState<string>("すべて")
   const categories = ["すべて"]
   const [availableItems, setAvailableItems] = useState<AvailableItem[]>([])
+  const [statusFilter, setStatusFilter] = useState<string | null>(null)
 
   // 商品データを取得する関数
   const fetchAvailableItems = async () => {
@@ -253,18 +254,54 @@ export default function AdminPage() {
     }
   }
 
+  // ステータスフィルターを適用
+  const filteredOrders = statusFilter ? orders.filter((order) => order.status === statusFilter) : orders
+
   return (
     <div className="min-h-screen bg-white">
       <header className="bg-white shadow-sm border-b">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-xl font-bold text-gray-900 flex items-center">
-              <Package className="h-5 w-5 mr-2 text-blue-500" />
-              SPLASH'N'GO! 管理者ダッシュボード
-            </h1>
-            <Button variant="outline" onClick={() => router.push("/products")} className="text-sm">
-              <ChevronLeft className="h-4 w-4 mr-1" />
-              商品一覧に戻る
+          <div className="flex items-center">
+            <Package className="h-5 w-5 mr-2 text-blue-500" />
+            <h1 className="text-xl font-bold text-gray-900">SPLASH'N'GO! 管理者ダッシュボード</h1>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="flex space-x-2">
+              <Button
+                variant={statusFilter === null ? "default" : "outline"}
+                size="sm"
+                onClick={() => setStatusFilter(null)}
+                className={statusFilter === null ? "bg-blue-600 text-white" : ""}
+              >
+                すべて
+              </Button>
+              <Button
+                variant={statusFilter === "処理中" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setStatusFilter("処理中")}
+                className={statusFilter === "処理中" ? "bg-blue-600 text-white" : ""}
+              >
+                処理中
+              </Button>
+              <Button
+                variant={statusFilter === "出荷済み" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setStatusFilter("出荷済み")}
+                className={statusFilter === "出荷済み" ? "bg-blue-600 text-white" : ""}
+              >
+                出荷済み
+              </Button>
+            </div>
+            <Button
+              variant="outline"
+              onClick={() => {
+                localStorage.removeItem("storeInfo")
+                router.push("/login")
+              }}
+              className="text-sm"
+            >
+              <LogOut className="h-4 w-4 mr-1" />
+              ログアウト
             </Button>
           </div>
         </div>
@@ -292,7 +329,7 @@ export default function AdminPage() {
 
             {/* カテゴリー別表示 */}
             <CategoryOrders
-              orders={orders}
+              orders={filteredOrders}
               category={activeCategory}
               formatDateTime={formatDateTime}
               getStatusColor={getStatusColor}
