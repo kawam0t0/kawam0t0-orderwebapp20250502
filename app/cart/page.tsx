@@ -94,6 +94,42 @@ const convertGoogleDriveUrl = (url: string): string => {
   }
 }
 
+// 商品画像の取得
+const getProductImage = (item: CartItem, products: any[]) => {
+  // 商品に画像URLがある場合はそれを使用
+  if (item.imageUrl && item.imageUrl.trim() !== "") {
+    console.log(`Using image URL for ${item.item_name}: ${item.imageUrl}`)
+    return item.imageUrl
+  }
+
+  // 商品名と選択された色に基づいて一致する商品を検索
+  if (item.selectedColor) {
+    const matchingColorVariant = products.find(
+      (product) =>
+        product.name === item.item_name &&
+        product.colors?.includes(item.selectedColor || "") &&
+        product.imageUrl &&
+        product.imageUrl.trim() !== "",
+    )
+
+    if (matchingColorVariant) {
+      console.log(`Found matching color variant for ${item.item_name} in color ${item.selectedColor}`)
+      return convertGoogleDriveUrl(matchingColorVariant.imageUrl)
+    }
+  }
+
+  // 商品名で一致する商品を検索（色が一致しない場合のフォールバック）
+  const matchingProduct = products.find((product) => product.name === item.item_name)
+  if (matchingProduct && matchingProduct.imageUrl && matchingProduct.imageUrl.trim() !== "") {
+    console.log(`Found matching product with image URL for ${item.item_name}: ${matchingProduct.imageUrl}`)
+    return convertGoogleDriveUrl(matchingProduct.imageUrl)
+  }
+
+  // 画像URLがない場合はプレースホルダーを使用
+  console.log(`No image URL found for ${item.item_name}, using placeholder`)
+  return DEFAULT_PLACEHOLDER_URL
+}
+
 export default function CartPage() {
   const router = useRouter()
   const [cartItems, setCartItems] = useState<CartItem[]>([])
@@ -238,42 +274,6 @@ export default function CartPage() {
     return taxInclusiveTotal
   }
 
-  // 商品画像の取得
-  const getProductImage = (item: CartItem) => {
-    // 商品に画像URLがある場合はそれを使用
-    if (item.imageUrl && item.imageUrl.trim() !== "") {
-      console.log(`Using image URL for ${item.item_name}: ${item.imageUrl}`)
-      return item.imageUrl
-    }
-
-    // 商品名と選択された色に基づいて一致する商品を検索
-    if (item.selectedColor) {
-      const matchingColorVariant = products.find(
-        (product) =>
-          product.name === item.item_name &&
-          product.colors?.includes(item.selectedColor || "") &&
-          product.imageUrl &&
-          product.imageUrl.trim() !== "",
-      )
-
-      if (matchingColorVariant) {
-        console.log(`Found matching color variant for ${item.item_name} in color ${item.selectedColor}`)
-        return convertGoogleDriveUrl(matchingColorVariant.imageUrl)
-      }
-    }
-
-    // 商品名で一致する商品を検索（色が一致しない場合のフォールバック）
-    const matchingProduct = products.find((product) => product.name === item.item_name)
-    if (matchingProduct && matchingProduct.imageUrl && matchingProduct.imageUrl.trim() !== "") {
-      console.log(`Found matching product with image URL for ${item.item_name}: ${matchingProduct.imageUrl}`)
-      return convertGoogleDriveUrl(matchingProduct.imageUrl)
-    }
-
-    // 画像URLがない場合はプレースホルダーを使用
-    console.log(`No image URL found for ${item.item_name}, using placeholder`)
-    return DEFAULT_PLACEHOLDER_URL
-  }
-
   // 注文処理
   const handleCheckout = () => {
     router.push("/checkout")
@@ -353,7 +353,7 @@ export default function CartPage() {
                       <div className="flex flex-col sm:flex-row gap-4">
                         <div className="relative h-24 w-24 bg-gray-100 rounded-md flex-shrink-0">
                           <Image
-                            src={getProductImage(item) || "/placeholder.svg"}
+                            src={getProductImage(item, products) || "/placeholder.svg"}
                             alt={item.item_name}
                             fill
                             className="object-contain p-2"

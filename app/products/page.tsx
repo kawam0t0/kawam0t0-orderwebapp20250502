@@ -120,8 +120,8 @@ const convertGoogleDriveUrl = (url: string): string => {
   }
 }
 
-// 商品画像の取得関数を以下のコードに置き換えます
-const getProductImage = (product: Product, selectedColor?: string, products: Product[]) => {
+// 商品画像の取得関数を修正
+const getProductImage = (product: Product, products: Product[], selectedColor?: string) => {
   // 基本の画像URLチェック（空でないかどうか）
   if (product.imageUrl && product.imageUrl.trim() !== "") {
     // Tシャツや色分けされた商品で色が選択されている場合
@@ -705,7 +705,7 @@ export default function ProductsPage() {
                   {/* 水色の枠内に画像を表示 */}
                   <div className="relative pt-[100%] bg-gray-50 border-2 border-cyan-300">
                     <Image
-                      src={getProductImage(product, selectedColors[product.id], products) || "/placeholder.svg"}
+                      src={getProductImage(product, products, selectedColors[product.id]) || "/placeholder.svg"}
                       alt={product.name}
                       fill
                       className="object-contain p-4"
