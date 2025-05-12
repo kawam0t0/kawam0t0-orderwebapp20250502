@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { ArrowLeft, Truck, CreditCard, Info } from "lucide-react"
-import { addWeeks, format } from "date-fns"
+import { addWeeks, format, addDays } from "date-fns"
 import { ja } from "date-fns/locale"
 
 import { Button } from "@/components/ui/button"
@@ -92,6 +92,97 @@ const convertGoogleDriveUrl = (url: string): string => {
     console.error("Error converting Google Drive URL:", error)
     return url
   }
+}
+
+// 3週間後の納期を表示する商品リストを更新
+const threeWeeksDeliveryItems = [
+  "Tシャツ",
+  "フーディ",
+  "ワークシャツ",
+  "つなぎ",
+  "ポイントカード",
+  "サブスクメンバーズカード",
+  "サブスクフライヤー",
+  "フリーチケット",
+  "クーポン券",
+  "のぼり",
+  "お年賀",
+  "利用規約",
+]
+
+// 4日後の納期を表示する商品リストを更新（3日後から4日後に変更）
+const fourDaysDeliveryItems = ["スプシャン", "スプワックス", "スプコート", "セラミック", "スプタイヤ", "ピッカークロス"]
+
+// 納期の計算
+const calculateDeliveryDate = (leadTime: string, category: string, itemName: string) => {
+  // 3週間後の納期を表示する商品
+  if (threeWeeksDeliveryItems.some((item) => itemName.includes(item))) {
+    const deliveryDate = addWeeks(new Date(), 3)
+    return `${format(deliveryDate, "yyyy年MM月dd日", { locale: ja })}頃`
+  }
+
+  // 4日後の納期を表示する商品（3日後から4日後に変更）
+  if (fourDaysDeliveryItems.some((item) => itemName.includes(item))) {
+    const deliveryDate = addDays(new Date(), 4)
+    return `${format(deliveryDate, "yyyy年MM月dd日", { locale: ja })}頃`
+  }
+
+  // カテゴリーに基づいた納期計算
+  if (category === "販促グッズ") {
+    // 販促グッズは約3週間
+    const deliveryDate = addWeeks(new Date(), 3)
+    return `${format(deliveryDate, "yyyy年MM月dd日", { locale: ja })}頃`
+  } else if (category === "液剤") {
+    // 液剤は約4日（3日から4日に変更）
+    const deliveryDate = addDays(new Date(), 4)
+    return `${format(deliveryDate, "yyyy年MM月dd日", { locale: ja })}頃`
+  }
+
+  // その他のカテゴリーは従来通りの計算
+  if (leadTime === "即日") return "即日出荷"
+  const weeks = Number(leadTime.match(/\d+/)?.[0] || "0")
+  const deliveryDate = addWeeks(new Date(), weeks)
+  return `${format(deliveryDate, "yyyy年MM月dd日", { locale: ja })}頃`
+}
+
+// 最早・最遅の納期を取得する関数も修正
+const getDeliveryDateRange = () => {
+  const savedCart = localStorage.getItem("cart")
+  const cartItems = savedCart ? JSON.parse(savedCart) : []
+  if (cartItems.length === 0) return "データなし"
+
+  const deliveryDates = cartItems.map((item) => {
+    // 3週間後の納期を表示する商品
+    if (threeWeeksDeliveryItems.some((name) => item.item_name.includes(name))) {
+      return addWeeks(new Date(), 3) // 3週間後
+    }
+
+    // 4日後の納期を表示する商品（3日後から4日後に変更）
+    if (fourDaysDeliveryItems.some((name) => item.item_name.includes(name))) {
+      return addDays(new Date(), 4) // 4日後
+    }
+
+    // カテゴリーに基づいた日付計算
+    if (item.item_category === "販促グッズ") {
+      return addWeeks(new Date(), 3) // 3週間後
+    } else if (item.item_category === "液剤") {
+      return addDays(new Date(), 4) // 4日後（3日から4日に変更）
+    }
+
+    // その他のカテゴリーは従来通りの計算
+    if (item.lead_time === "即日") return new Date()
+    const weeks = Number(item.lead_time.match(/\d+/)?.[0] || "0")
+    return addWeeks(new Date(), weeks)
+  })
+
+  const earliestDate = new Date(Math.min(...deliveryDates.map((d) => d.getTime())))
+  const latestDate = new Date(Math.max(...deliveryDates.map((d) => d.getTime())))
+
+  if (earliestDate.getTime() === latestDate.getTime()) {
+    return `${format(earliestDate, "yyyy年MM月dd日", { locale: ja })}頃`
+  }
+
+  return `${format(earliestDate, "yyyy年MM月dd日", { locale: ja })} - ${format(latestDate, "yyyy年MM月dd日", { locale: ja })}頃`
 }
 
 export default function CheckoutPage() {
@@ -327,57 +418,6 @@ export default function CheckoutPage() {
     }
   }
 
-  // 納期の計算
-  const calculateDeliveryDate = (leadTime: string, category: string) => {
-    // カテゴリーに基づいた納期計算
-    if (category === "販促グッズ") {
-      // 販促グッズは約3週間
-      const deliveryDate = addWeeks(new Date(), 3)
-      return `${format(deliveryDate, "yyyy年MM月dd日", { locale: ja })}頃`
-    } else if (category === "液剤") {
-      // 液剤は約3日
-      const deliveryDate = new Date()
-      deliveryDate.setDate(deliveryDate.getDate() + 3)
-      return `${format(deliveryDate, "yyyy年MM月dd日", { locale: ja })}頃`
-    }
-
-    // その他のカテゴリーは従来通りの計算
-    if (leadTime === "即日") return "即日出荷"
-    const weeks = Number(leadTime.match(/\d+/)?.[0] || "0")
-    const deliveryDate = addWeeks(new Date(), weeks)
-    return `${format(deliveryDate, "yyyy年MM月dd日", { locale: ja })}頃`
-  }
-
-  // 最早・最遅の納期を取得
-  const getDeliveryDateRange = () => {
-    if (cartItems.length === 0) return "データなし"
-
-    const deliveryDates = cartItems.map((item) => {
-      // カテゴリーに基づいた日付計算
-      if (item.item_category === "販促グッズ") {
-        return addWeeks(new Date(), 3) // 3週間後
-      } else if (item.item_category === "液剤") {
-        const date = new Date()
-        date.setDate(date.getDate() + 3) // 3日後
-        return date
-      }
-
-      // その他のカテゴリーは従来通りの計算
-      if (item.lead_time === "即日") return new Date()
-      const weeks = Number(item.lead_time.match(/\d+/)?.[0] || "0")
-      return addWeeks(new Date(), weeks)
-    })
-
-    const earliestDate = new Date(Math.min(...deliveryDates.map((d) => d.getTime())))
-    const latestDate = new Date(Math.max(...deliveryDates.map((d) => d.getTime())))
-
-    if (earliestDate.getTime() === latestDate.getTime()) {
-      return `${format(earliestDate, "yyyy年MM月dd日", { locale: ja })}頃`
-    }
-
-    return `${format(earliestDate, "yyyy年MM月dd日", { locale: ja })} - ${format(latestDate, "yyyy年MM月dd日", { locale: ja })}頃`
-  }
-
   // 単位を取得する関数
   const getUnit = (itemName: string) => {
     // 特定の販促グッズの場合は「枚」を返す
@@ -584,7 +624,7 @@ export default function CheckoutPage() {
                           {item.selectedSize && <p>サイズ: {item.selectedSize}</p>}
                           <p>数量: {formatQuantity(item)}</p>
                           <p className="text-green-600">
-                            納期: {calculateDeliveryDate(item.lead_time, item.item_category)}
+                            納期: {calculateDeliveryDate(item.lead_time, item.item_category, item.item_name)}
                           </p>
                         </div>
                       </div>

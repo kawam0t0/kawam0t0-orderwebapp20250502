@@ -68,7 +68,7 @@ const specialPromotionalItems = [
   "ピッカークロス",
 ]
 
-// 3週間後の納期を表示する商品リスト
+// 3週間後の納期を表示する商品リストを更新
 const threeWeeksDeliveryItems = [
   "Tシャツ",
   "フーディ",
@@ -82,18 +82,10 @@ const threeWeeksDeliveryItems = [
   "のぼり",
   "お年賀",
   "利用規約",
-  "ピッカークロス",
 ]
 
-// 3日後の納期を表示する商品リスト
-const threeDaysDeliveryItems = [
-  "スプシャン",
-  "スプワックス",
-  "スプコート",
-  "セラミック",
-  "スプタイヤ",
-  "ピッカークロス",
-]
+// 4日後の納期を表示する商品リストを更新（3日後から4日後に変更）
+const fourDaysDeliveryItems = ["スプシャン", "スプワックス", "スプコート", "セラミック", "スプタイヤ", "ピッカークロス"]
 
 // 固定数量と価格のマッピング
 const FIXED_QUANTITY_PRICE_MAP = {
@@ -676,7 +668,7 @@ export default function ProductsPage() {
     return null
   }
 
-  // 納期の計算（修正版）
+  // 納期の計算（修正版）関数を更新
   const calculateDeliveryDate = (productName: string) => {
     // 3週間後の納期を表示する商品
     if (threeWeeksDeliveryItems.some((item) => productName.includes(item))) {
@@ -684,9 +676,9 @@ export default function ProductsPage() {
       return `${format(deliveryDate, "yyyy年MM月dd日", { locale: ja })}頃`
     }
 
-    // 3日後の納期を表示する商品
-    if (threeDaysDeliveryItems.some((item) => productName.includes(item))) {
-      const deliveryDate = addDays(new Date(), 3)
+    // 4日後の納期を表示する商品（3日後から4日後に変更）
+    if (fourDaysDeliveryItems.some((item) => productName.includes(item))) {
+      const deliveryDate = addDays(new Date(), 4)
       return `${format(deliveryDate, "yyyy年MM月dd日", { locale: ja })}頃`
     }
 

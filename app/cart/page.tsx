@@ -31,7 +31,7 @@ const isApparelItem = (name: string): boolean => {
   return apparelItems.some((item) => name.includes(item))
 }
 
-// 3週間後の納期を表示する商品リスト
+// 3週間後の納期を表示する商品リストを更新
 const threeWeeksDeliveryItems = [
   "Tシャツ",
   "フーディ",
@@ -47,15 +47,8 @@ const threeWeeksDeliveryItems = [
   "利用規約",
 ]
 
-// 3日後の納期を表示する商品リスト
-const threeDaysDeliveryItems = [
-  "スプシャン",
-  "スプワックス",
-  "スプコート",
-  "セラミック",
-  "スプタイヤ",
-  "ピッカークロス",
-]
+// 4日後の納期を表示する商品リストを更新（3日後から4日後に変更）
+const fourDaysDeliveryItems = ["スプシャン", "スプワックス", "スプコート", "セラミック", "スプタイヤ", "ピッカークロス"]
 
 // 数量の表示方法を修正する関数
 const formatQuantity = (item) => {
@@ -316,9 +309,9 @@ export default function CartPage() {
       return `${format(deliveryDate, "yyyy年MM月dd日", { locale: ja })}頃`
     }
 
-    // 3日後の納期を表示する商品
-    if (threeDaysDeliveryItems.some((item) => itemName.includes(item))) {
-      const deliveryDate = addDays(new Date(), 3)
+    // 4日後の納期を表示する商品（3日後から4日後に変更）
+    if (fourDaysDeliveryItems.some((item) => itemName.includes(item))) {
+      const deliveryDate = addDays(new Date(), 4)
       return `${format(deliveryDate, "yyyy年MM月dd日", { locale: ja })}頃`
     }
 
