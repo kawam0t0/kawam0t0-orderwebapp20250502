@@ -145,46 +145,6 @@ const calculateDeliveryDate = (leadTime: string, category: string, itemName: str
   return `${format(deliveryDate, "yyyy年MM月dd日", { locale: ja })}頃`
 }
 
-// 最早・最遅の納期を取得する関数も修正
-const getDeliveryDateRange = () => {
-  const savedCart = localStorage.getItem("cart")
-  const cartItems = savedCart ? JSON.parse(savedCart) : []
-  if (cartItems.length === 0) return "データなし"
-
-  const deliveryDates = cartItems.map((item) => {
-    // 3週間後の納期を表示する商品
-    if (threeWeeksDeliveryItems.some((name) => item.item_name.includes(name))) {
-      return addWeeks(new Date(), 3) // 3週間後
-    }
-
-    // 4日後の納期を表示する商品（3日後から4日後に変更）
-    if (fourDaysDeliveryItems.some((name) => item.item_name.includes(name))) {
-      return addDays(new Date(), 4) // 4日後
-    }
-
-    // カテゴリーに基づいた日付計算
-    if (item.item_category === "販促グッズ") {
-      return addWeeks(new Date(), 3) // 3週間後
-    } else if (item.item_category === "液剤") {
-      return addDays(new Date(), 4) // 4日後（3日から4日に変更）
-    }
-
-    // その他のカテゴリーは従来通りの計算
-    if (item.lead_time === "即日") return new Date()
-    const weeks = Number(item.lead_time.match(/\d+/)?.[0] || "0")
-    return addWeeks(new Date(), weeks)
-  })
-
-  const earliestDate = new Date(Math.min(...deliveryDates.map((d) => d.getTime())))
-  const latestDate = new Date(Math.max(...deliveryDates.map((d) => d.getTime())))
-
-  if (earliestDate.getTime() === latestDate.getTime()) {
-    return `${format(earliestDate, "yyyy年MM月dd日", { locale: ja })}頃`
-  }
-
-  return `${format(earliestDate, "yyyy年MM月dd日", { locale: ja })} - ${format(latestDate, "yyyy年MM月dd日", { locale: ja })}頃`
-}
-
 export default function CheckoutPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
@@ -193,13 +153,56 @@ export default function CheckoutPage() {
   const [shippingMethod, setShippingMethod] = useState("standard")
   const [orderError, setOrderError] = useState("")
   const [products, setProducts] = useState<any[]>([]) // 商品データを保持するstate
+  const [deliveryDateRange, setDeliveryDateRange] = useState<string>("データなし")
+
+  // 最早・最遅の納期を計算する関数
+  const calculateDeliveryDateRange = (items: CartItem[]) => {
+    if (items.length === 0) return "データなし"
+
+    const deliveryDates = items.map((item) => {
+      // 3週間後の納期を表示する商品
+      if (threeWeeksDeliveryItems.some((name) => item.item_name.includes(name))) {
+        return addWeeks(new Date(), 3) // 3週間後
+      }
+
+      // 4日後の納期を表示する商品（3日後から4日後に変更）
+      if (fourDaysDeliveryItems.some((name) => item.item_name.includes(name))) {
+        return addDays(new Date(), 4) // 4日後
+      }
+
+      // カテゴリーに基づいた日付計算
+      if (item.item_category === "販促グッズ") {
+        return addWeeks(new Date(), 3) // 3週間後
+      } else if (item.item_category === "液剤") {
+        return addDays(new Date(), 4) // 4日後（3日から4日に変更）
+      }
+
+      // その他のカテゴリーは従来通りの計算
+      if (item.lead_time === "即日") return new Date()
+      const weeks = Number(item.lead_time.match(/\d+/)?.[0] || "0")
+      return addWeeks(new Date(), weeks)
+    })
+
+    const earliestDate = new Date(Math.min(...deliveryDates.map((d) => d.getTime())))
+    const latestDate = new Date(Math.max(...deliveryDates.map((d) => d.getTime())))
+
+    if (earliestDate.getTime() === latestDate.getTime()) {
+      return `${format(earliestDate, "yyyy年MM月dd日", { locale: ja })}頃`
+    }
+
+    return `${format(earliestDate, "yyyy年MM月dd日", { locale: ja })} - ${format(latestDate, "yyyy年MM月dd日", { locale: ja })}頃`
+  }
 
   // カートデータとストア情報の取得
   useEffect(() => {
-    const savedCart = localStorage.getItem("cart")
+    // クライアントサイドでのみlocalStorageにアクセス
+    const savedCart = typeof window !== "undefined" ? localStorage.getItem("cart") : null
     if (savedCart) {
       try {
-        setCartItems(JSON.parse(savedCart))
+        const parsedCart = JSON.parse(savedCart)
+        setCartItems(parsedCart)
+        // 納期範囲を計算
+        setDeliveryDateRange(calculateDeliveryDateRange(parsedCart))
       } catch (e) {
         console.error("Failed to parse cart data:", e)
         setCartItems([])
@@ -207,7 +210,7 @@ export default function CheckoutPage() {
     }
 
     // ストア情報の取得
-    const savedStoreInfo = localStorage.getItem("storeInfo")
+    const savedStoreInfo = typeof window !== "undefined" ? localStorage.getItem("storeInfo") : null
     if (savedStoreInfo) {
       try {
         const parsedStoreInfo = JSON.parse(savedStoreInfo)
@@ -236,7 +239,7 @@ export default function CheckoutPage() {
 
         // カート内の商品に画像URLを追加
         if (data && data.length > 0) {
-          const savedCart = localStorage.getItem("cart")
+          const savedCart = typeof window !== "undefined" ? localStorage.getItem("cart") : null
           if (savedCart) {
             const items = JSON.parse(savedCart)
             const updatedItems = items.map((item: CartItem) => {
@@ -251,7 +254,12 @@ export default function CheckoutPage() {
               return item
             })
             setCartItems(updatedItems)
-            localStorage.setItem("cart", JSON.stringify(updatedItems))
+            // 納期範囲を計算
+            setDeliveryDateRange(calculateDeliveryDateRange(updatedItems))
+
+            if (typeof window !== "undefined") {
+              localStorage.setItem("cart", JSON.stringify(updatedItems))
+            }
           }
         }
       }
@@ -297,37 +305,43 @@ export default function CheckoutPage() {
         } else {
           console.warn(`ID: ${storeId} に一致する店舗情報が見つかりませんでした`)
           // 店舗IDが見つからない場合のフォールバック
+          const storeName = typeof window !== "undefined" ? localStorage.getItem("storeName") : null
+          const storeEmail = typeof window !== "undefined" ? localStorage.getItem("storeEmail") : null
           setStoreInfo({
             id: storeId,
-            name: localStorage.getItem("storeName") || "不明な店舗",
+            name: storeName || "不明な店舗",
             phone: "",
             zipCode: "",
             address: "",
-            email: localStorage.getItem("storeEmail") || "",
+            email: storeEmail || "",
           })
         }
       } else {
         console.warn("店舗情報が空です")
         // データが空の場合のフォールバック
+        const storeName = typeof window !== "undefined" ? localStorage.getItem("storeName") : null
+        const storeEmail = typeof window !== "undefined" ? localStorage.getItem("storeEmail") : null
         setStoreInfo({
           id: storeId,
-          name: localStorage.getItem("storeName") || "不明な店舗",
+          name: storeName || "不明な店舗",
           phone: "",
           zipCode: "",
           address: "",
-          email: localStorage.getItem("storeEmail") || "",
+          email: storeEmail || "",
         })
       }
     } catch (error) {
       console.error("Error fetching store details:", error)
       // エラー時のフォールバック
+      const storeName = typeof window !== "undefined" ? localStorage.getItem("storeName") : null
+      const storeEmail = typeof window !== "undefined" ? localStorage.getItem("storeEmail") : null
       setStoreInfo({
         id: storeId,
-        name: localStorage.getItem("storeName") || "不明な店舗",
+        name: storeName || "不明な店舗",
         phone: "",
         zipCode: "",
         address: "",
-        email: localStorage.getItem("storeEmail") || "",
+        email: storeEmail || "",
       })
     }
   }
@@ -478,10 +492,11 @@ export default function CheckoutPage() {
       }
 
       // 発注番号をセッションストレージに保存（発注完了画面で表示するため）
-      sessionStorage.setItem("orderNumber", data.orderNumber)
-
-      // カートをクリア
-      localStorage.removeItem("cart")
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("orderNumber", data.orderNumber)
+        // カートをクリア
+        localStorage.removeItem("cart")
+      }
 
       // 発注完了画面へリダイレクト
       router.push("/order-complete")
@@ -572,7 +587,7 @@ export default function CheckoutPage() {
                       <Label htmlFor="standard" className="font-medium">
                         標準配送
                       </Label>
-                      <p className="text-sm text-muted-foreground">おおよその到着日: {getDeliveryDateRange()}</p>
+                      <p className="text-sm text-muted-foreground">おおよその到着日: {deliveryDateRange}</p>
                       <p className="text-sm text-muted-foreground">
                         {hasApparelItems ? "アパレル商品の送料: ¥1,000" : "送料無料"}
                       </p>
@@ -669,7 +684,7 @@ export default function CheckoutPage() {
                 )}
 
                 <div className="mt-6 space-y-4">
-                  <p className="text-sm text-gray-600">おおよその到着日: {getDeliveryDateRange()}</p>
+                  <p className="text-sm text-gray-600">おおよその到着日: {deliveryDateRange}</p>
                   <Button
                     className="w-full bg-blue-600 hover:bg-blue-700 text-white"
                     onClick={handleSubmitOrder}
