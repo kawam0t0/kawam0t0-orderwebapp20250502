@@ -512,6 +512,7 @@ export default function ProductsPage() {
 
   // 数量の変更処理
   const handleAmountChange = (productId: string, amount: number) => {
+    console.log(`数量変更: 商品ID=${productId}, 数量=${amount}`)
     setSelectedAmounts((prev) => ({
       ...prev,
       [productId]: amount,
@@ -556,7 +557,7 @@ export default function ProductsPage() {
     return matchesCategory && matchesSearch
   })
 
-  // 商品の価格計算
+  // 商品���価格計算
   const calculatePrice = (product: Product) => {
     // 商品名を小文字に変換
     const productNameLower = product.name.toLowerCase()
@@ -1013,21 +1014,10 @@ export default function ProductsPage() {
                         </div>
                       </>
                     ) : // 販促グッズの場合
-                    product.category === "販促グッズ" &&
-                      ((product.amounts && product.amounts.length > 0) ||
-                        Object.keys(FIXED_QUANTITY_ITEMS).some((item) => product.name.includes(item))) ? (
+                    product.category === "販促グッズ" ? (
                       <div className="mb-3">
                         <Select
-                          value={String(
-                            selectedAmounts[product.id] ||
-                              // 固定数量を持つ商品の場合はその最初の値を使用
-                              Object.entries(FIXED_QUANTITY_ITEMS).find(([key]) =>
-                                product.name.includes(key),
-                              )?.[1][0] ||
-                              // それ以外は通常の処理
-                              product.amounts?.[0] ||
-                              1,
-                          )}
+                          value={String(selectedAmounts[product.id] || 1)}
                           onValueChange={(value) => handleAmountChange(product.id, Number(value))}
                         >
                           <SelectTrigger className="w-full">
@@ -1044,25 +1034,23 @@ export default function ProductsPage() {
                       </div>
                     ) : (
                       // その他の商品の場合
-                      !isApparelItem(product.name) && (
-                        <div className="mb-3">
-                          <Select
-                            value={String(selectedAmounts[product.id] || 1)}
-                            onValueChange={(value) => handleAmountChange(product.id, Number(value))}
-                          >
-                            <SelectTrigger className="w-full">
-                              <SelectValue placeholder="数量を選択" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {[...Array(10)].map((_, i) => (
-                                <SelectItem key={`${product.id}-amount-${i + 1}`} value={String(i + 1)}>
-                                  {i + 1}個
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      )
+                      <div className="mb-3">
+                        <Select
+                          value={String(selectedAmounts[product.id] || 1)}
+                          onValueChange={(value) => handleAmountChange(product.id, Number(value))}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="数量を選択" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {[...Array(10)].map((_, i) => (
+                              <SelectItem key={`${product.id}-amount-${i + 1}`} value={String(i + 1)}>
+                                {i + 1}個
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
                     )}
                     {/* 価格表示 */}
                     <div className="mt-4">
