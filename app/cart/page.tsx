@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { Trash2, ArrowLeft, ShoppingBag } from "lucide-react"
-import { format, addWeeks } from "date-fns"
+import { format, addWeeks, addDays } from "date-fns"
 import { ja } from "date-fns/locale"
 
 import { Button } from "@/components/ui/button"
@@ -29,6 +29,32 @@ const isApparelItem = (name: string): boolean => {
   const apparelItems = ["Tシャツ", "フーディ", "ワークシャツ", "つなぎ"]
   return apparelItems.some((item) => name.includes(item))
 }
+
+// 3週間後の納期を表示する商品リスト
+const threeWeeksDeliveryItems = [
+  "Tシャツ",
+  "フーディ",
+  "ワークシャツ",
+  "つなぎ",
+  "ポイントカード",
+  "サブスクメンバーズカード",
+  "サブスクフライヤー",
+  "フリーチケット",
+  "クーポン券",
+  "のぼり",
+  "お年賀",
+  "利用規約",
+]
+
+// 3日後の納期を表示する商品リスト
+const threeDaysDeliveryItems = [
+  "スプシャン",
+  "スプワックス",
+  "スプコート",
+  "セラミック",
+  "スプタイヤ",
+  "ピッカークロス",
+]
 
 // 数量の表示方法を修正する関数
 const formatQuantity = (item) => {
@@ -281,25 +307,22 @@ export default function CartPage() {
     router.push("/checkout")
   }
 
-  // 納期の表示
-  const displayDeliveryTime = (leadTime: string, category: string) => {
-    // カテゴリーに基づいた納期計算
-    if (category === "販促グッズ") {
-      // 販促グッズは約3週間
+  // 納期の表示（修正版）
+  const displayDeliveryTime = (itemName: string) => {
+    // 3週間後の納期を表示する商品
+    if (threeWeeksDeliveryItems.some((item) => itemName.includes(item))) {
       const deliveryDate = addWeeks(new Date(), 3)
-      return `${format(deliveryDate, "yyyy年MM月dd日", { locale: ja })}頃`
-    } else if (category === "液剤") {
-      // 液剤は約3日
-      const deliveryDate = new Date()
-      deliveryDate.setDate(deliveryDate.getDate() + 3)
       return `${format(deliveryDate, "yyyy年MM月dd日", { locale: ja })}頃`
     }
 
-    // その他のカテゴリーは従来通りの計算
-    if (leadTime === "即日") return "即日出荷"
-    const weeks = Number(leadTime.match(/\d+/)?.[0] || "0")
-    const deliveryDate = addWeeks(new Date(), weeks)
-    return `${format(deliveryDate, "yyyy年MM月dd日", { locale: ja })}頃`
+    // 3日後の納期を表示する商品
+    if (threeDaysDeliveryItems.some((item) => itemName.includes(item))) {
+      const deliveryDate = addDays(new Date(), 3)
+      return `${format(deliveryDate, "yyyy年MM月dd日", { locale: ja })}頃`
+    }
+
+    // その他の商品は従来通りの計算
+    return "2週間程度"
   }
 
   // 単位を取得する関数
@@ -384,9 +407,7 @@ export default function CartPage() {
                                   : `${item.selectedQuantity}個セット`}
                               </span>
                             )}
-                            <span className="text-green-600">
-                              納期: {displayDeliveryTime(item.lead_time, item.item_category)}
-                            </span>
+                            <span className="text-green-600">納期: {displayDeliveryTime(item.item_name)}</span>
                           </div>
 
                           <div className="flex justify-between items-center mt-2">
