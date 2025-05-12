@@ -246,7 +246,23 @@ export default function CartPage() {
       return item.imageUrl
     }
 
-    // 商品名で一致する商品を検索
+    // 商品名と選択された色に基づいて一致する商品を検索
+    if (item.selectedColor) {
+      const matchingColorVariant = products.find(
+        (product) =>
+          product.name === item.item_name &&
+          product.colors?.includes(item.selectedColor || "") &&
+          product.imageUrl &&
+          product.imageUrl.trim() !== "",
+      )
+
+      if (matchingColorVariant) {
+        console.log(`Found matching color variant for ${item.item_name} in color ${item.selectedColor}`)
+        return convertGoogleDriveUrl(matchingColorVariant.imageUrl)
+      }
+    }
+
+    // 商品名で一致する商品を検索（色が一致しない場合のフォールバック）
     const matchingProduct = products.find((product) => product.name === item.item_name)
     if (matchingProduct && matchingProduct.imageUrl && matchingProduct.imageUrl.trim() !== "") {
       console.log(`Found matching product with image URL for ${item.item_name}: ${matchingProduct.imageUrl}`)

@@ -120,6 +120,33 @@ const convertGoogleDriveUrl = (url: string): string => {
   }
 }
 
+// 商品画像の取得関数を以下のコードに置き換えます
+const getProductImage = (product: Product, selectedColor?: string, products: Product[]) => {
+  // 基本の画像URLチェック（空でないかどうか）
+  if (product.imageUrl && product.imageUrl.trim() !== "") {
+    // Tシャツや色分けされた商品で色が選択されている場合
+    if ((product.name.includes("Tシャツ") || product.colors?.length) && selectedColor) {
+      // 選択された色に対応する商品データを探す
+      const matchingColorVariant = products.find(
+        (p) => p.name === product.name && p.colors?.includes(selectedColor) && p.imageUrl && p.imageUrl.trim() !== "",
+      )
+
+      // 色に対応する商品バリエーションが見つかった場合はその画像を使用
+      if (matchingColorVariant && matchingColorVariant.imageUrl) {
+        console.log(`Found matching color variant for ${product.name} in color ${selectedColor}`)
+        return matchingColorVariant.imageUrl
+      }
+    }
+
+    // 色別の商品が見つからない場合は元の画像を使用
+    return product.imageUrl
+  }
+
+  // 画像URLがない場合はプレースホルダーを使用
+  console.log(`No image URL found for ${product.name}, using placeholder`)
+  return DEFAULT_PLACEHOLDER_URL
+}
+
 export default function ProductsPage() {
   const router = useRouter()
   const { open: openToast } = useToast()
@@ -413,6 +440,9 @@ export default function ProductsPage() {
       ...prev,
       [productId]: color,
     }))
+
+    // 色が変更されたことをコンソールに出力（デバッグ用）
+    console.log(`Color changed to ${color} for product ${productId}`)
   }
 
   // サイズの変更処理
@@ -530,18 +560,6 @@ export default function ProductsPage() {
   }
 
   // 商品画像の取得関数
-  const getProductImage = (product: Product) => {
-    // 画像URLが存在し、有効な場合はそれを使用
-    if (product.imageUrl && product.imageUrl.trim() !== "") {
-      // デバッグ用：画像URLを確認
-      console.log(`Using image URL for ${product.name}: ${product.imageUrl}`)
-      return product.imageUrl
-    }
-
-    // 画像URLがない場合はプレースホルダーを使用
-    console.log(`No image URL found for ${product.name}, using placeholder`)
-    return DEFAULT_PLACEHOLDER_URL
-  }
 
   // 数量選択のプルダウンを生成する関数
   const generateQuantityOptions = (product) => {
@@ -687,7 +705,7 @@ export default function ProductsPage() {
                   {/* 水色の枠内に画像を表示 */}
                   <div className="relative pt-[100%] bg-gray-50 border-2 border-cyan-300">
                     <Image
-                      src={getProductImage(product) || "/placeholder.svg"}
+                      src={getProductImage(product, selectedColors[product.id], products) || "/placeholder.svg"}
                       alt={product.name}
                       fill
                       className="object-contain p-4"
