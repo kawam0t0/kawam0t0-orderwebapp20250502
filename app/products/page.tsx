@@ -377,7 +377,7 @@ export default function ProductsPage() {
       }
 
       // 選択した数量のインデックスを見つける
-      const amountIndex = product.amounts.findIndex((amount) => amount === selectedAmount)
+      const amountIndex = product.amounts ? product.amounts.findIndex((amount) => amount === selectedAmount) : -1
 
       // 対応する価格を取得
       const selectedPrice = product.prices && amountIndex !== -1 ? product.prices[amountIndex] : "0"
