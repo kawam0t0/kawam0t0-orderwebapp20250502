@@ -130,6 +130,27 @@ const getProductImage = (item: CartItem, products: any[]) => {
   return DEFAULT_PLACEHOLDER_URL
 }
 
+// 商品価格の計算関数を修正
+const calculateItemPrice = (item: CartItem) => {
+  // 特定の販促グッズの場合は固定価格を返す
+  if (specialPromotionalItems.some((name) => item.item_name.includes(name))) {
+    // 選択された数量に対応する固定価格をそのまま使用
+    return Number(String(item.item_price).replace(/[^0-9.-]+/g, ""))
+  }
+
+  // アパレル商品の場合
+  if (isApparelItem(item.item_name)) {
+    const basePrice = Number(String(item.item_price).replace(/[^0-9.-]+/g, ""))
+    return basePrice * item.quantity
+  }
+
+  // その他の商品の場合
+  else {
+    const basePrice = Number(String(item.item_price).replace(/[^0-9.-]+/g, ""))
+    return basePrice * item.quantity
+  }
+}
+
 export default function CartPage() {
   const router = useRouter()
   const [cartItems, setCartItems] = useState<CartItem[]>([])
@@ -234,25 +255,6 @@ export default function CartPage() {
     const updatedCart = cartItems.filter((item) => item.id !== itemId)
     setCartItems(updatedCart)
     localStorage.setItem("cart", JSON.stringify(updatedCart))
-  }
-
-  // 商品価格の計算
-  const calculateItemPrice = (item: CartItem) => {
-    // アパレル商品の場合
-    if (isApparelItem(item.item_name)) {
-      const basePrice = Number(String(item.item_price).replace(/[^0-9.-]+/g, ""))
-      return basePrice * item.quantity
-    }
-    // 販促グッズの場合
-    else if (item.item_category === "販促グッズ" && item.selectedQuantity) {
-      const price = Number(String(item.item_price).replace(/[^0-9.-]+/g, ""))
-      return price // 販促グッズは選択した数量セットの価格をそのまま使用
-    }
-    // その他の商品の場合
-    else {
-      const basePrice = Number(String(item.item_price).replace(/[^0-9.-]+/g, ""))
-      return basePrice * item.quantity
-    }
   }
 
   // 小計の計算

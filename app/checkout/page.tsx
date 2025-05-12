@@ -301,6 +301,12 @@ export default function CheckoutPage() {
 
   // 商品価格の計算（修正版）
   const calculateItemTotal = (item: CartItem) => {
+    // 特定の販促グッズの場合は固定価格を返す
+    if (specialPromotionalItems.some((name) => item.item_name.includes(name))) {
+      // 選択された数量に対応する固定価格をそのまま使用
+      return Number(String(item.item_price).replace(/[^0-9.-]+/g, ""))
+    }
+
     // アパレル商品の場合
     if (isApparelItem(item.item_name)) {
       const price =
@@ -309,37 +315,8 @@ export default function CheckoutPage() {
           : Number(item.item_price)
       return price * item.quantity
     }
-    // 販促グッズの場合
-    else if (item.item_category === "販促グッズ" && item.selectedQuantity) {
-      // 文字列から数値に変換する際に、カンマを取り除く
-      let price: number
 
-      if (Array.isArray(item.item_price)) {
-        const quantityIndex = (
-          Array.isArray(item.selectedQuantity) ? item.selectedQuantity : [item.selectedQuantity]
-        ).findIndex((qty) => String(qty) === String(item.selectedQuantity))
-
-        if (quantityIndex !== -1) {
-          const priceStr = item.item_price[quantityIndex]
-          price = Number(String(priceStr).replace(/[^0-9.-]+/g, ""))
-        } else {
-          price = 0
-        }
-      } else {
-        price =
-          typeof item.item_price === "string"
-            ? Number(item.item_price.replace(/[^0-9.-]+/g, ""))
-            : Number(item.item_price)
-      }
-
-      // ポイントカードなどの特定商品は、単価×数量ではなく、セット価格をそのまま使用
-      if (specialPromotionalItems.some((name) => item.item_name.includes(name))) {
-        return price
-      } else {
-        return price * item.quantity
-      }
-    }
-    // その他の商品
+    // その他の商品の場合
     else {
       const price =
         typeof item.item_price === "string"
