@@ -63,48 +63,35 @@ const specialPromotionalItems = [
   "クーポン券",
   "名刺",
   "のぼり",
-  "お年賀(マイクロファイバークロス)",
+  "お年賀",
   "利用規約",
 ]
-
-// 固定数量を持つ商品の定義
-const FIXED_QUANTITY_ITEMS = {
-  ポイントカード: [1000, 3000, 5000],
-  サブスクメンバーズカード: [500, 1000, 1500],
-  サブスクフライヤー: [500, 1000, 1500],
-  フリーチケット: [1000],
-  クーポン券: [1000],
-  "のぼり(10枚1セット)": [10],
-  "のぼり(6枚1セット)": [6],
-  お年賀: [100],
-  利用規約: [500, 1000],
-}
 
 // 固定数量と価格のマッピング
 const FIXED_QUANTITY_PRICE_MAP = {
   ポイントカード: [
-    { quantity: 1000, price: 29370 },
-    { quantity: 3000, price: 46090 },
-    { quantity: 5000, price: 62920 },
+    { quantity: 1000, label: "1000枚", price: 29370 },
+    { quantity: 3000, label: "3000枚", price: 46090 },
+    { quantity: 5000, label: "5000枚", price: 62920 },
   ],
   サブスクメンバーズカード: [
-    { quantity: 500, price: 23540 },
-    { quantity: 1000, price: 36080 },
-    { quantity: 1500, price: 48620 },
+    { quantity: 500, label: "500枚", price: 23540 },
+    { quantity: 1000, label: "1000枚", price: 36080 },
+    { quantity: 1500, label: "1500枚", price: 48620 },
   ],
   サブスクフライヤー: [
-    { quantity: 500, price: 6600 },
-    { quantity: 1000, price: 7370 },
-    { quantity: 1500, price: 8360 },
+    { quantity: 500, label: "500枚", price: 6600 },
+    { quantity: 1000, label: "1000枚", price: 7370 },
+    { quantity: 1500, label: "1500枚", price: 8360 },
   ],
-  フリーチケット: [{ quantity: 1000, price: 23100 }],
-  クーポン券: [{ quantity: 1000, price: 42680 }],
-  "のぼり(10枚1セット)": [{ quantity: 10, price: 26620 }],
-  "のぼり(6枚1セット)": [{ quantity: 6, price: 19140 }],
-  お年賀: [{ quantity: 100, price: 25000 }],
+  フリーチケット: [{ quantity: 1000, label: "1000枚", price: 23100 }],
+  クーポン券: [{ quantity: 1000, label: "1000枚", price: 42680 }],
+  "のぼり(10枚1セット)": [{ quantity: 10, label: "10枚1セット", price: 26620 }],
+  "のぼり(6枚1セット)": [{ quantity: 6, label: "6枚1セット", price: 19140 }],
+  お年賀: [{ quantity: 100, label: "100枚", price: 25000 }],
   利用規約: [
-    { quantity: 500, price: 999999 },
-    { quantity: 1000, price: 999999 },
+    { quantity: 500, label: "500枚", price: 999999 },
+    { quantity: 1000, label: "1000枚", price: 999999 },
   ],
 }
 
@@ -188,6 +175,11 @@ const getProductImage = (product: Product, products: Product[], selectedColor?: 
   return DEFAULT_PLACEHOLDER_URL
 }
 
+// 特定の商品名かどうかを判定する関数
+const isSpecificProduct = (productName: string, keyword: string): boolean => {
+  return productName.includes(keyword)
+}
+
 export default function ProductsPage() {
   const router = useRouter()
   const { open: openToast } = useToast()
@@ -202,7 +194,7 @@ export default function ProductsPage() {
   const [productPrices, setProductPrices] = useState<{ [key: string]: { [size: string]: number } }>({})
   const [isLoading, setIsLoading] = useState(true)
 
-  // スプレッドシートからデータを取得
+  // スプレッドシートからデータを取���
   useEffect(() => {
     const fetchProducts = async () => {
       setIsLoading(true)
@@ -220,6 +212,7 @@ export default function ProductsPage() {
           "Sample products (first 3):",
           data.slice(0, 3).map((p) => ({
             name: p.name,
+            category: p.category,
             imageUrl: p.imageUrl,
           })),
         )
@@ -251,35 +244,23 @@ export default function ProductsPage() {
 
         data.forEach((product: Product) => {
           // 特定の商品に対して初期値を設定
-          const productNameLower = product.name.toLowerCase()
-          console.log(`Setting initial amount for: ${product.name}`)
-
-          if (/ポイントカード/i.test(product.name)) {
-            console.log(`Setting initial amount for ポイントカード: 1000`)
+          if (isSpecificProduct(product.name, "ポイントカード")) {
             initialAmounts[product.id] = 1000
-          } else if (productNameLower.includes("サブスクメンバーズカード")) {
-            console.log(`Setting initial amount for サブスクメンバーズカード: 500`)
+          } else if (isSpecificProduct(product.name, "サブスクメンバーズカード")) {
             initialAmounts[product.id] = 500
-          } else if (productNameLower.includes("サブスクフライヤー")) {
-            console.log(`Setting initial amount for サブスクフライヤー: 500`)
+          } else if (isSpecificProduct(product.name, "サブスクフライヤー")) {
             initialAmounts[product.id] = 500
-          } else if (productNameLower.includes("フリーチケット")) {
-            console.log(`Setting initial amount for フリーチケット: 1000`)
+          } else if (isSpecificProduct(product.name, "フリーチケット")) {
             initialAmounts[product.id] = 1000
-          } else if (productNameLower.includes("クーポン券")) {
-            console.log(`Setting initial amount for クーポン券: 1000`)
+          } else if (isSpecificProduct(product.name, "クーポン券")) {
             initialAmounts[product.id] = 1000
-          } else if (productNameLower.includes("のぼり(10枚1セット)")) {
-            console.log(`Setting initial amount for のぼり(10枚1セット): 10`)
+          } else if (isSpecificProduct(product.name, "のぼり(10枚1セット)")) {
             initialAmounts[product.id] = 10
-          } else if (productNameLower.includes("のぼり(6枚1セット)")) {
-            console.log(`Setting initial amount for のぼり(6枚1セット): 6`)
+          } else if (isSpecificProduct(product.name, "のぼり(6枚1セット)")) {
             initialAmounts[product.id] = 6
-          } else if (productNameLower.includes("お年賀")) {
-            console.log(`Setting initial amount for お年賀: 100`)
+          } else if (isSpecificProduct(product.name, "お年賀")) {
             initialAmounts[product.id] = 100
-          } else if (productNameLower.includes("利用規約")) {
-            console.log(`Setting initial amount for 利用規約: 500`)
+          } else if (isSpecificProduct(product.name, "利用規約")) {
             initialAmounts[product.id] = 500
           } else if (isApparelItem(product.name)) {
             if (product.colors && product.colors.length > 0) {
@@ -325,18 +306,10 @@ export default function ProductsPage() {
                 }
               }
 
-              // デバッグ用：価格マッピングを確認
-              console.log(`Price mapping for ${product.name}:`, sizePriceMap)
-
               initialPrices[product.id] = sizePriceMap
             }
-          } else if (product.category === "販促グッズ") {
-            // 固定数量がない場合は通常の処理
-            if (product.amounts && product.amounts.length > 0) {
-              initialAmounts[product.id] = product.amounts[0]
-            } else {
-              initialAmounts[product.id] = 1
-            }
+          } else if (product.amounts && product.amounts.length > 0) {
+            initialAmounts[product.id] = product.amounts[0]
           } else {
             initialAmounts[product.id] = 1
           }
@@ -412,11 +385,7 @@ export default function ProductsPage() {
       }
     }
     // 販促グッズの場合
-    else if (
-      product.category === "販促グッズ" &&
-      ((product.amounts && product.amounts.length > 0) ||
-        Object.keys(FIXED_QUANTITY_PRICE_MAP).some((item) => product.name.includes(item)))
-    ) {
+    else if (specialPromotionalItems.some((item) => product.name.includes(item))) {
       const selectedAmount = selectedAmounts[product.id]
 
       if (!selectedAmount) {
@@ -426,6 +395,8 @@ export default function ProductsPage() {
 
       // 固定数量と価格のマッピングを使用
       let selectedPrice = "0"
+
+      // 商品名に基づいて価格を設定
       for (const [itemName, options] of Object.entries(FIXED_QUANTITY_PRICE_MAP)) {
         if (product.name.includes(itemName)) {
           const option = options.find((opt) => opt.quantity === selectedAmount)
@@ -443,9 +414,6 @@ export default function ProductsPage() {
         }
       }
 
-      // 特定の販促グッズの場合は、selectedQuantity と quantity の両方に選択された数量を設定
-      const isSpecialPromotionalItem = specialPromotionalItems.some((name) => product.name.includes(name))
-
       cartItem = {
         id: product.id,
         item_category: product.category,
@@ -453,7 +421,7 @@ export default function ProductsPage() {
         item_price: selectedPrice,
         lead_time: product.leadTime,
         selectedQuantity: selectedAmount,
-        quantity: isSpecialPromotionalItem ? selectedAmount : 1, // 特定の販促グッズの場合は選択された数量、それ以外は1セット
+        quantity: selectedAmount, // 特定の販促グッズの場合は選択された数量
         partnerName: product.partnerName, // パートナー名を追加
         imageUrl: product.imageUrl, // 画像URLを追加
       }
@@ -569,60 +537,49 @@ export default function ProductsPage() {
 
   // 商品の価格計算
   const calculatePrice = (product: Product) => {
-    // 商品名を小文字に変換
-    const productNameLower = product.name.toLowerCase()
-
-    // ポイントカード
-    if (productNameLower.includes("ポイントカード")) {
+    // 特定の商品の場合は固定価格を返す
+    if (isSpecificProduct(product.name, "ポイントカード")) {
       const selectedAmount = selectedAmounts[product.id]
       if (selectedAmount === 1000) return "29,370"
       if (selectedAmount === 3000) return "46,090"
       if (selectedAmount === 5000) return "62,920"
     }
 
-    // サブスクメンバーズカード
-    if (productNameLower.includes("サブスクメンバーズカード")) {
+    if (isSpecificProduct(product.name, "サブスクメンバーズカード")) {
       const selectedAmount = selectedAmounts[product.id]
       if (selectedAmount === 500) return "23,540"
       if (selectedAmount === 1000) return "36,080"
       if (selectedAmount === 1500) return "48,620"
     }
 
-    // サブスクフライヤー
-    if (productNameLower.includes("サブスクフライヤー")) {
+    if (isSpecificProduct(product.name, "サブスクフライヤー")) {
       const selectedAmount = selectedAmounts[product.id]
       if (selectedAmount === 500) return "6,600"
       if (selectedAmount === 1000) return "7,370"
       if (selectedAmount === 1500) return "8,360"
     }
 
-    // フリーチケット
-    if (productNameLower.includes("フリーチケット")) {
+    if (isSpecificProduct(product.name, "フリーチケット")) {
       return "23,100"
     }
 
-    // クーポン券
-    if (productNameLower.includes("クーポン券")) {
+    if (isSpecificProduct(product.name, "クーポン券")) {
       return "42,680"
     }
 
-    // のぼり(10枚1セット)
-    if (productNameLower.includes("のぼり(10枚1セット)")) {
+    if (isSpecificProduct(product.name, "のぼり(10枚1セット)")) {
       return "26,620"
     }
 
-    // のぼり(6枚1セット)
-    if (productNameLower.includes("のぼり(6枚1セット)")) {
+    if (isSpecificProduct(product.name, "のぼり(6枚1セット)")) {
       return "19,140"
     }
 
-    // お年賀
-    if (productNameLower.includes("お年賀")) {
+    if (isSpecificProduct(product.name, "お年賀")) {
       return "25,000"
     }
 
-    // 利用規約
-    if (productNameLower.includes("利用規約")) {
+    if (isSpecificProduct(product.name, "利用規約")) {
       return "999,999"
     }
 
@@ -651,31 +608,6 @@ export default function ProductsPage() {
       }
 
       return (basePrice * amount).toLocaleString()
-    }
-    // 販促グッズの場合
-    else if (product.category === "販促グッズ") {
-      const selectedAmount = selectedAmounts[product.id]
-      if (!selectedAmount) return "価格未定"
-
-      // 固定数量と価格のマッピングを使用
-      for (const [itemName, options] of Object.entries(FIXED_QUANTITY_PRICE_MAP)) {
-        if (product.name.includes(itemName)) {
-          const option = options.find((opt) => opt.quantity === selectedAmount)
-          if (option) {
-            return option.price.toLocaleString()
-          }
-        }
-      }
-
-      // 通常の販促グッズの場合
-      if (product.amounts && product.amounts.length > 0) {
-        const amountIndex = product.amounts.findIndex((amount) => amount === selectedAmount)
-        if (amountIndex !== -1 && product.prices && product.prices[amountIndex]) {
-          return Number(product.prices[amountIndex].replace(/[^0-9.-]+/g, "")).toLocaleString()
-        }
-      }
-
-      return "価格未定"
     }
     // その他の商品の場合
     else {
@@ -723,25 +655,12 @@ export default function ProductsPage() {
     return `${format(deliveryDate, "yyyy年MM月dd日", { locale: ja })}頃`
   }
 
-  // 商品画像の取得関数
-
   // 数量選択のプルダウンを生成する関数
-  const generateQuantityOptions = (product) => {
-    // デバッグログ: 関数が呼び出されたことを確認
-    console.log(`generateQuantityOptions called for product: ${product.name}`, {
-      category: product.category,
-      id: product.id,
-    })
+  const generateQuantityOptions = (product: Product) => {
+    console.log(`Generating quantity options for: ${product.name}`)
 
-    // 商品名を小文字に変換して比較を容易にする
-    const productNameLower = product.name.toLowerCase()
-
-    // 各商品タイプの条件をチェック
-    console.log(`Checking product name: "${productNameLower}"`)
-
-    // ポイントカード
-    if (/ポイントカード/i.test(product.name)) {
-      console.log(`Match found: ポイントカード for ${product.name}`)
+    // 特定の商品名に基づいて選択肢を生成
+    if (isSpecificProduct(product.name, "ポイントカード")) {
       return [
         { value: "1000", label: "1000枚", price: 29370 },
         { value: "3000", label: "3000枚", price: 46090 },
@@ -749,9 +668,7 @@ export default function ProductsPage() {
       ]
     }
 
-    // サブスクメンバーズカード
-    if (/サブスクメンバーズカード/i.test(product.name)) {
-      console.log(`Match found: サブスクメンバーズカード for ${product.name}`)
+    if (isSpecificProduct(product.name, "サブスクメンバーズカード")) {
       return [
         { value: "500", label: "500枚", price: 23540 },
         { value: "1000", label: "1000枚", price: 36080 },
@@ -759,9 +676,7 @@ export default function ProductsPage() {
       ]
     }
 
-    // サブスクフライヤー
-    if (/サブスクフライヤー/i.test(product.name)) {
-      console.log(`Match found: サブスクフライヤー for ${product.name}`)
+    if (isSpecificProduct(product.name, "サブスクフライヤー")) {
       return [
         { value: "500", label: "500枚", price: 6600 },
         { value: "1000", label: "1000枚", price: 7370 },
@@ -769,39 +684,27 @@ export default function ProductsPage() {
       ]
     }
 
-    // フリーチケット
-    if (/フリーチケット/i.test(product.name)) {
-      console.log(`Match found: フリーチケット for ${product.name}`)
+    if (isSpecificProduct(product.name, "フリーチケット")) {
       return [{ value: "1000", label: "1000枚", price: 23100 }]
     }
 
-    // クーポン券
-    if (/クーポン券/i.test(product.name)) {
-      console.log(`Match found: クーポン券 for ${product.name}`)
+    if (isSpecificProduct(product.name, "クーポン券")) {
       return [{ value: "1000", label: "1000枚", price: 42680 }]
     }
 
-    // のぼり(10枚1セット)
-    if (/のぼり$$10枚1セット$$/i.test(product.name)) {
-      console.log(`Match found: のぼり(10枚1セット) for ${product.name}`)
+    if (isSpecificProduct(product.name, "のぼり(10枚1セット)")) {
       return [{ value: "10", label: "10枚1セット", price: 26620 }]
     }
 
-    // のぼり(6枚1セット)
-    if (/のぼり$$6枚1セット$$/i.test(product.name)) {
-      console.log(`Match found: のぼり(6枚1セット) for ${product.name}`)
+    if (isSpecificProduct(product.name, "のぼり(6枚1セット)")) {
       return [{ value: "6", label: "6枚1セット", price: 19140 }]
     }
 
-    // お年賀
-    if (/お年賀/i.test(product.name)) {
-      console.log(`Match found: お年賀 for ${product.name}`)
+    if (isSpecificProduct(product.name, "お年賀")) {
       return [{ value: "100", label: "100枚", price: 25000 }]
     }
 
-    // 利用規約
-    if (/利用規約/i.test(product.name)) {
-      console.log(`Match found: 利用規約 for ${product.name}`)
+    if (isSpecificProduct(product.name, "利用規約")) {
       return [
         { value: "500", label: "500枚", price: 999999 },
         { value: "1000", label: "1000枚", price: 999999 },
@@ -1041,61 +944,44 @@ export default function ProductsPage() {
                           </Select>
                         </div>
                       </>
+                    ) : // 特定の販促グッズの場合
+                    specialPromotionalItems.some((item) => product.name.includes(item)) ? (
+                      <div className="mb-3">
+                        <Select
+                          value={String(selectedAmounts[product.id] || 1)}
+                          onValueChange={(value) => handleAmountChange(product.id, Number(value))}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="数量を選択" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {generateQuantityOptions(product).map((option) => (
+                              <SelectItem key={`${product.id}-amount-${option.value}`} value={option.value}>
+                                {option.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
                     ) : (
-                      // 販促グッズの場合
-                      (() => {
-                        // デバッグ用: 条件チェックの結果をログ出力
-                        const isPromo = product.category === "販促グッズ"
-                        console.log(`Product ${product.name} - isPromo: ${isPromo}`)
-
-                        if (isPromo) {
-                          // 選択肢を生成してログ出力
-                          const options = generateQuantityOptions(product)
-                          console.log(`Generated options for ${product.name}:`, options)
-
-                          return (
-                            <div className="mb-3">
-                              <Select
-                                value={String(selectedAmounts[product.id] || 1)}
-                                onValueChange={(value) => handleAmountChange(product.id, Number(value))}
-                              >
-                                <SelectTrigger className="w-full">
-                                  <SelectValue placeholder="数量を選択" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {options.map((option) => (
-                                    <SelectItem key={`${product.id}-amount-${option.value}`} value={option.value}>
-                                      {option.label}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          )
-                        } else if (!isApparelItem(product.name)) {
-                          // その他の商品の場合
-                          return (
-                            <div className="mb-3">
-                              <Select
-                                value={String(selectedAmounts[product.id] || 1)}
-                                onValueChange={(value) => handleAmountChange(product.id, Number(value))}
-                              >
-                                <SelectTrigger className="w-full">
-                                  <SelectValue placeholder="数量を選択" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {[...Array(10)].map((_, i) => (
-                                    <SelectItem key={`${product.id}-amount-${i + 1}`} value={String(i + 1)}>
-                                      {i + 1}個
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          )
-                        }
-                        return null
-                      })()
+                      // その他の商品の場合
+                      <div className="mb-3">
+                        <Select
+                          value={String(selectedAmounts[product.id] || 1)}
+                          onValueChange={(value) => handleAmountChange(product.id, Number(value))}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="数量を選択" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {[...Array(10)].map((_, i) => (
+                              <SelectItem key={`${product.id}-amount-${i + 1}`} value={String(i + 1)}>
+                                {i + 1}個
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
                     )}
                     {/* 価格表示 */}
                     <div className="mt-4">
