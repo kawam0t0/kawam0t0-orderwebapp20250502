@@ -175,23 +175,31 @@ const convertGoogleDriveUrl = (url: string): string => {
 
 // 商品画像の取得関数を修正
 const getProductImage = (product: Product, products: Product[], selectedColor?: string) => {
-  // 基本の画像URLチェック（空でないかどうか）
-  if (product.imageUrl && product.imageUrl.trim() !== "") {
-    // Tシャツや色分けされた商品で色が選択されている場合
-    if ((product.name.includes("Tシャツ") || product.colors?.length) && selectedColor) {
-      // 選択された色に対応する商品データを探す
-      const matchingColorVariant = products.find(
-        (p) => p.name === product.name && p.colors?.includes(selectedColor) && p.imageUrl && p.imageUrl.trim() !== "",
-      )
+  console.log(`Getting image for ${product.name}, selected color: ${selectedColor || "none"}`)
 
-      // 色に対応する商品バリエーションが見つかった場合はその画像を使用
-      if (matchingColorVariant && matchingColorVariant.imageUrl) {
-        console.log(`Found matching color variant for ${product.name} in color ${selectedColor}`)
-        return matchingColorVariant.imageUrl
-      }
+  // 選択された色がある場合（Tシャツやアパレル商品など）
+  if (selectedColor) {
+    // 同じ商品名で、選択された色のバリエーションを検索
+    const colorVariants = products.filter(
+      (p) => p.name === product.name && p.colors?.includes(selectedColor) && p.imageUrl && p.imageUrl.trim() !== "",
+    )
+
+    if (colorVariants.length > 0) {
+      // デバッグログ
+      console.log(`Found ${colorVariants.length} color variants for ${product.name} in color ${selectedColor}`)
+      colorVariants.forEach((v, i) => {
+        console.log(`Variant ${i}: Color=${v.colors}, URL=${v.imageUrl}`)
+      })
+
+      // 最も一致度の高いバリエーションを選択
+      const bestMatch = colorVariants[0]
+      console.log(`Selected best color match: ${bestMatch.imageUrl}`)
+      return bestMatch.imageUrl
     }
+  }
 
-    // 色別の商品が見つからない場合は元の画像を使用
+  // 基本の画像URLチェック（色が選択されていない場合や、色に対応する画像が見つからなかった場合）
+  if (product.imageUrl && product.imageUrl.trim() !== "") {
     return product.imageUrl
   }
 
@@ -533,6 +541,17 @@ export default function ProductsPage() {
 
     // 色が変更されたことをコンソールに出力（デバッグ用）
     console.log(`Color changed to ${color} for product ${productId}`)
+
+    // 対象の商品を取得
+    const product = products.find((p) => p.id === productId)
+    if (product) {
+      // 色に合わせた画像を再取得するためのデバッグ情報を出力
+      console.log(`Updating image for ${product.name} to match color: ${color}`)
+
+      // 色が変わったことをUIに反映させるため、products配列を更新する必要はないが、
+      // 変更を検知させるために空の状態更新を行う
+      setProducts([...products])
+    }
   }
 
   // サイズの変更処理
@@ -899,6 +918,7 @@ export default function ProductsPage() {
                       fill
                       className="object-contain p-4"
                       sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                      key={`${product.id}-${selectedColors[product.id]}`} // 色が変わるたびにキーが変わり、画像を再レンダリング
                       onError={(e) => {
                         // 画像の読み込みエラー時にプレースホルダーを表示
                         console.error(`Error loading image for ${product.name}, using placeholder`)

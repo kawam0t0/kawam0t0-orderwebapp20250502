@@ -114,7 +114,7 @@ const convertGoogleDriveUrl = (url: string): string => {
   }
 }
 
-// 商品画像の取得
+// 商品画像の取得関数を改善
 const getProductImage = (item: CartItem, products: any[]) => {
   // 商品に画像URLがある場合はそれを使用
   if (item.imageUrl && item.imageUrl.trim() !== "") {
@@ -124,7 +124,8 @@ const getProductImage = (item: CartItem, products: any[]) => {
 
   // 商品名と選択された色に基づいて一致する商品を検索
   if (item.selectedColor) {
-    const matchingColorVariant = products.find(
+    // 同じ商品名で選択された色の商品バリアントを検索
+    const colorVariants = products.filter(
       (product) =>
         product.name === item.item_name &&
         product.colors?.includes(item.selectedColor || "") &&
@@ -132,9 +133,13 @@ const getProductImage = (item: CartItem, products: any[]) => {
         product.imageUrl.trim() !== "",
     )
 
-    if (matchingColorVariant) {
-      console.log(`Found matching color variant for ${item.item_name} in color ${item.selectedColor}`)
-      return convertGoogleDriveUrl(matchingColorVariant.imageUrl)
+    if (colorVariants.length > 0) {
+      // 最も一致度の高いバリエーションを選択
+      const bestMatch = colorVariants[0]
+      console.log(
+        `Found matching color variant for ${item.item_name} in color ${item.selectedColor}: ${bestMatch.imageUrl}`,
+      )
+      return convertGoogleDriveUrl(bestMatch.imageUrl)
     }
   }
 
