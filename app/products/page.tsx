@@ -27,6 +27,7 @@ type Product = {
   leadTime: string
   partnerName?: string // パートナー名を追加
   imageUrl?: string // 画像URLを追加
+  color?: string
 }
 
 type CartItem = {
@@ -179,19 +180,19 @@ const getProductImage = (product: Product, products: Product[], selectedColor?: 
 
   // 選択された色がある場合（Tシャツやアパレル商品など）
   if (selectedColor) {
-    // 同じ商品名で、選択された色のバリエーションを検索
+    // 同じ商品名と選択された色を持つアイテムを検索
     const colorVariants = products.filter(
-      (p) => p.name === product.name && p.colors?.includes(selectedColor) && p.imageUrl && p.imageUrl.trim() !== "",
+      (p) => p.name === product.name && p.color === selectedColor && p.imageUrl && p.imageUrl.trim() !== "",
     )
 
     if (colorVariants.length > 0) {
       // デバッグログ
       console.log(`Found ${colorVariants.length} color variants for ${product.name} in color ${selectedColor}`)
       colorVariants.forEach((v, i) => {
-        console.log(`Variant ${i}: Color=${v.colors}, URL=${v.imageUrl}`)
+        console.log(`Variant ${i}: Color=${v.color}, URL=${v.imageUrl}`)
       })
 
-      // 最も一致度の高いバリエーションを選択
+      // 最初に見つかった一致するバリエーションを使用
       const bestMatch = colorVariants[0]
       console.log(`Selected best color match: ${bestMatch.imageUrl}`)
       return bestMatch.imageUrl

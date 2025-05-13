@@ -16,6 +16,7 @@ type GroupedItem = {
   partnerName: string
   partnerEmail: string
   imageUrl: string // 画像URLを追加
+  color: string
 }
 
 // Google DriveのURLを直接表示可能な形式に変換する関数
@@ -226,8 +227,9 @@ function processAvailableItems(rows: any[][]) {
       console.log(`Row ${index} imageUrl (K column):`, imageUrl)
     }
 
-    // 商品名をキーとして使用
-    const key = name
+    // ********* 重要な変更: 商品名とカラーをキーとして使用 *********
+    // 商品名と色の組み合わせでキーを作成
+    const key = `${name}-${color}`
     const id = Math.random().toString(36).substring(2, 9)
 
     if (!groupedItems.has(key)) {
@@ -245,6 +247,7 @@ function processAvailableItems(rows: any[][]) {
         partnerName: partnerName || "",
         partnerEmail: partnerEmail || "", // パートナーのメールアドレス
         imageUrl: imageUrl ? convertGoogleDriveUrl(imageUrl) : "", // 画像URLを変換して追加
+        color: color || "", // 色情報を追加
       })
     }
 
@@ -253,7 +256,7 @@ function processAvailableItems(rows: any[][]) {
 
     // 画像URLを更新（存在する場合のみ）
     if (imageUrl && !item.imageUrl) {
-      item.imageUrl = imageUrl
+      item.imageUrl = convertGoogleDriveUrl(imageUrl)
     }
 
     // カラーとサイズを追加（存在する場合）
@@ -305,6 +308,7 @@ function processAvailableItems(rows: any[][]) {
       partnerName: item.partnerName,
       partnerEmail: item.partnerEmail, // パートナーのメールアドレスを返す
       imageUrl: item.imageUrl, // 画像URLを追加
+      color: item.color, // 色情報を返す
     }
   })
 
