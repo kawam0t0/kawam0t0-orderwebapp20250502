@@ -141,6 +141,42 @@ const HOODIE_PRICES: { [size: string]: number } = {
 // デフォルトの画像プレースホルダーURL
 const DEFAULT_PLACEHOLDER_URL = "/diverse-products-still-life.png"
 
+// 店舗ごとの価格設定を追加
+const STORE_SPECIFIC_PRICES = {
+  "SPLASH'N'GO!伊勢崎韮塚店": {
+    スプワックス: 40000,
+    スプコート: 25000,
+  },
+  "SPLASH'N'GO!高崎棟高店": {
+    スプワックス: 37000,
+    スプコート: 23000,
+  },
+  "SPLASH'N'GO!足利緑町店": {
+    スプワックス: 37000,
+    スプコート: 23000,
+  },
+  "SPLASH'N'GO!新前橋店": {
+    スプワックス: 26000,
+    スプコート: 20000,
+  },
+}
+
+// 店舗に基づいて商品価格を取得する関数を追加
+const getStoreSpecificPrice = (productName: string, storeName: string | null): number | null => {
+  if (!storeName) return null
+
+  // 商品名に部分一致する場合も対応
+  const matchingProduct = Object.keys(STORE_SPECIFIC_PRICES[storeName] || {}).find((product) =>
+    productName.includes(product),
+  )
+
+  if (matchingProduct && STORE_SPECIFIC_PRICES[storeName]) {
+    return STORE_SPECIFIC_PRICES[storeName][matchingProduct]
+  }
+
+  return null
+}
+
 // Google DriveのURLを直接表示可能な形式に変換する関数
 const convertGoogleDriveUrl = (url: string): string => {
   try {
@@ -227,6 +263,9 @@ export default function ProductsPage() {
   const [selectedAmounts, setSelectedAmounts] = useState<{ [key: string]: number }>({})
   const [productPrices, setProductPrices] = useState<{ [key: string]: { [size: string]: number } }>({})
   const [isLoading, setIsLoading] = useState(true)
+
+  // 店舗情報の状態を追加
+  const [storeName, setStoreName] = useState<string | null>(null)
 
   // スプレッドシートからデータを取得
   useEffect(() => {
@@ -372,6 +411,18 @@ export default function ProductsPage() {
       }
     }
 
+    // ローカルストレージから店舗情報を取得
+    const savedStoreInfo = localStorage.getItem("storeInfo")
+    if (savedStoreInfo) {
+      try {
+        const storeInfo = JSON.parse(savedStoreInfo)
+        setStoreName(storeInfo.name)
+        console.log("Store name loaded:", storeInfo.name)
+      } catch (e) {
+        console.error("Failed to parse store info:", e)
+      }
+    }
+
     fetchProducts()
   }, [])
 
@@ -381,6 +432,9 @@ export default function ProductsPage() {
     console.log(`Adding product to cart: ${product.name}, Partner: ${product.partnerName || "None"}`)
 
     let cartItem: CartItem | null = null
+
+    // 店舗固有の価格をチェック
+    const storeSpecificPrice = getStoreSpecificPrice(product.name, storeName)
 
     // アパレル商品の場合
     if (isApparelItem(product.name)) {
@@ -466,11 +520,17 @@ export default function ProductsPage() {
     else {
       const quantity = selectedAmounts[product.id] || 1 // 選択された数量を使用
 
+      // 店舗固有の価格がある場合はそれを使用
+      let itemPrice = product.prices?.[0] || "0"
+      if (storeSpecificPrice !== null) {
+        itemPrice = storeSpecificPrice.toString()
+      }
+
       cartItem = {
         id: product.id,
         item_category: product.category,
         item_name: product.name,
-        item_price: product.prices?.[0] || "0",
+        item_price: itemPrice,
         lead_time: product.leadTime,
         quantity, // 選択された数量を設定
         partnerName: product.partnerName, // パートナー名を追加
@@ -584,6 +644,12 @@ export default function ProductsPage() {
 
   // 商品の価格計算
   const calculatePrice = (product: Product) => {
+    // 店舗固有の価格をチェック
+    const storeSpecificPrice = getStoreSpecificPrice(product.name, storeName)
+    if (storeSpecificPrice !== null) {
+      return storeSpecificPrice.toLocaleString()
+    }
+
     // 特定の商品の場合は固定価格を返す
     if (isSpecificProduct(product.name, "ポイントカード")) {
       const selectedAmount = selectedAmounts[product.id]
