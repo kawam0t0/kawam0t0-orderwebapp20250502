@@ -111,8 +111,8 @@ const FIXED_QUANTITY_PRICE_MAP = {
   "のぼり(6枚1セット)": [{ quantity: 6, label: "1セット", price: 19140 }],
   お年賀: [{ quantity: 100, label: "100枚", price: 25000 }],
   利用規約: [
-    { quantity: 500, label: "500枚", price: 999999 },
-    { quantity: 1000, label: "1000枚", price: 999999 },
+    { quantity: 500, label: "500枚", price: 10000 },
+    { quantity: 1000, label: "1000枚", price: 20000 },
   ],
   ピッカークロス: [
     { quantity: 400, label: "400枚", price: 30000 },
@@ -216,7 +216,7 @@ const getProductImage = (product: Product, products: Product[], selectedColor?: 
 
   // 選択された色がある場合（Tシャツやアパレル商品など）
   if (selectedColor) {
-    // 同じ商品名と選択された色を持つアイテムを検索
+    // 同じ商��名と選択された色を持つアイテムを検索
     const colorVariants = products.filter(
       (p) => p.name === product.name && p.color === selectedColor && p.imageUrl && p.imageUrl.trim() !== "",
     )
@@ -509,6 +509,10 @@ export default function ProductsPage() {
       if (product.name.includes("のぼり(6枚1セット)") || product.name.includes("のぼり(10枚1セット)")) {
         cartQuantity = 1 // のぼりの商品はカート内では「1セット」として扱う
       }
+      // お年賀の場合も数量を1として扱う
+      else if (product.name.includes("お年賀")) {
+        cartQuantity = 1 // お年賀は固定価格なので数量は1として扱う
+      }
 
       cartItem = {
         id: product.id,
@@ -699,7 +703,9 @@ export default function ProductsPage() {
     }
 
     if (isSpecificProduct(product.name, "利用規約")) {
-      return "999,999"
+      const selectedAmount = selectedAmounts[product.id]
+      if (selectedAmount === 500) return "10,000"
+      if (selectedAmount === 1000) return "20,000"
     }
 
     if (isSpecificProduct(product.name, "ピッカークロス")) {

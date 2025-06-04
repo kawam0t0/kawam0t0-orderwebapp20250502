@@ -419,7 +419,11 @@ export default function CheckoutPage() {
   const calculateItemTotal = (item: CartItem) => {
     // 特定の販促グッズの場合は固定価格を返す
     if (specialPromotionalItems.some((name) => item.item_name.includes(name))) {
-      // 選択された数量に対応する固定価格をそのまま使用
+      // お年賀の場合は数量に関係なく固定価格
+      if (item.item_name.includes("お年賀")) {
+        return 25000
+      }
+      // その他の販促グッズは選択された数量に対応する固定価格をそのまま使用
       return Number(String(item.item_price).replace(/[^0-9.-]+/g, ""))
     }
 
