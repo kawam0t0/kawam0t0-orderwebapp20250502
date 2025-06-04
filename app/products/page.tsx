@@ -107,8 +107,8 @@ const FIXED_QUANTITY_PRICE_MAP = {
   ],
   フリーチケット: [{ quantity: 1000, label: "1000枚", price: 23100 }],
   クーポン券: [{ quantity: 1000, label: "1000枚", price: 42680 }],
-  "のぼり(10枚1セット)": [{ quantity: 10, label: "10枚1セット", price: 26620 }],
-  "のぼり(6枚1セット)": [{ quantity: 6, label: "6枚1セット", price: 19140 }],
+  "のぼり(10枚1セット)": [{ quantity: 10, label: "1セット", price: 26620 }],
+  "のぼり(6枚1セット)": [{ quantity: 6, label: "1セット", price: 19140 }],
   お年賀: [{ quantity: 100, label: "100枚", price: 25000 }],
   利用規約: [
     { quantity: 500, label: "500枚", price: 999999 },
@@ -810,11 +810,11 @@ export default function ProductsPage() {
     }
 
     if (isSpecificProduct(product.name, "のぼり(10枚1セット)")) {
-      return [{ value: "10", label: "10枚1セット", price: 26620 }]
+      return [{ value: "10", label: "1セット", price: 26620 }]
     }
 
     if (isSpecificProduct(product.name, "のぼり(6枚1セット)")) {
-      return [{ value: "6", label: "6枚1セット", price: 19140 }]
+      return [{ value: "6", label: "1セット", price: 19140 }]
     }
 
     if (isSpecificProduct(product.name, "お年賀")) {
