@@ -1,7 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next"
 import { google } from "googleapis"
 import crypto from "crypto"
-import nodemailer from "nodemailer"
 
 // 特定の販促グッズリストを定義
 const specialPromotionalItems = [
@@ -54,6 +53,14 @@ type AvailableItem = {
 // スプレッドシートに保存する前の数量処理を修正る関数
 const processOrderItems = (items) => {
   return items.map((item) => {
+    // のぼりの商品の場合は、数量を「1」に設定
+    if (item.item_name.includes("のぼり(6枚1セット)") || item.item_name.includes("のぼり(10枚1セット)")) {
+      return {
+        ...item,
+        quantity: 1, // のぼりの商品は常に「1セット」として保存
+      }
+    }
+
     // 特定の販促グッズの場合は、selectedQuantity を quantity として使用
     if (specialPromotionalItems.some((name) => item.item_name.includes(name))) {
       // selectedQuantity が存在する場合はそれを使用、存在しない場合は元の quantity を使用
@@ -67,218 +74,6 @@ const processOrderItems = (items) => {
     // その他の商品は従来通りの処理
     return item
   })
-}
-
-// メール送信用のトランスポーターを設定
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || "smtp.gmail.com",
-  port: Number(process.env.SMTP_PORT) || 587,
-  secure: process.env.SMTP_SECURE === "true",
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASSWORD,
-  },
-})
-
-// 注文確認メールを送信する関数
-async function sendOrderConfirmationEmail(
-  to: string,
-  subject: string,
-  orderNumber: string,
-  storeName: string,
-  items: any[],
-  totalAmount: number,
-) {
-  try {
-    // 商品リストのHTMLを生成
-    const itemsHtml = items
-      .map(
-        (item) => `
-        <tr>
-          <td style="padding: 8px; border-bottom: 1px solid #eee;">${item.item_name}</td>
-          <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">${item.selectedSize || "-"}</td>
-          <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">${item.selectedColor || "-"}</td>
-          <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">${item.quantity}</td>
-        </tr>
-      `,
-      )
-      .join("")
-
-    // 合計金額の表示
-    const formattedTotal = new Intl.NumberFormat("ja-JP").format(totalAmount)
-
-    // メール本文のHTML
-    const html = `
-    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-      <div style="background: linear-gradient(to right, #3b82f6, #0ea5e9); color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
-        <h1 style="margin: 0; font-size: 24px;">SPLASH'N'GO!</h1>
-        <p style="margin: 5px 0 0; font-size: 16px;">ご注文ありがとうございます</p>
-      </div>
-      
-      <div style="padding: 25px; background-color: #f0f9ff; border-left: 1px solid #e0f2fe; border-right: 1px solid #e0f2fe;">
-        <p style="color: #334155;">${storeName} 様</p>
-        <p style="color: #334155;">この度はご注文いただき、誠にありがとうございます。<br>以下の内容でご注文を承りました。</p>
-        
-        <div style="background-color: white; border-radius: 8px; padding: 20px; margin: 20px 0; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid #bae6fd;">
-          <h2 style="margin-top: 0; color: #0284c7; font-size: 18px; border-bottom: 2px solid #e0f2fe; padding-bottom: 10px;">ご注文情報</h2>
-          <p style="color: #334155;"><strong style="color: #0284c7;">発注番号:</strong> ${orderNumber}</p>
-          <p style="color: #334155;"><strong style="color: #0284c7;">発注日時:</strong> ${new Date().toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" })}</p>
-          
-          <h3 style="margin: 20px 0 10px; color: #0284c7; font-size: 16px;">ご注文商品</h3>
-          <table style="width: 100%; border-collapse: collapse; border-radius: 6px; overflow: hidden;">
-            <thead>
-              <tr style="background-color: #e0f2fe;">
-                <th style="padding: 10px; text-align: left; color: #0284c7; font-weight: 600;">商品名</th>
-                <th style="padding: 10px; text-align: center; color: #0284c7; font-weight: 600;">サイズ</th>
-                <th style="padding: 10px; text-align: center; color: #0284c7; font-weight: 600;">カラー</th>
-                <th style="padding: 10px; text-align: center; color: #0284c7; font-weight: 600;">数量</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${itemsHtml}
-            </tbody>
-          </table>
-          
-          <div style="margin-top: 20px; text-align: right; padding-top: 10px; border-top: 1px solid #e0f2fe;">
-            <p style="color: #334155; font-size: 16px;"><strong style="color: #0284c7;">合計金額（税込）:</strong> ¥${formattedTotal}</p>
-          </div>
-        </div>
-        
-        <p style="color: #334155; background-color: #dbeafe; padding: 12px; border-radius: 6px; border-left: 4px solid #3b82f6;">
-          商品の準備が整い次第、出荷のご連絡をさせていただきます。<br>
-          ご不明な点がございましたら、お気軽にお問い合わせください。
-        </p>
-      </div>
-      
-      <div style="background-color: #0c4a6e; color: white; padding: 15px; text-align: center; font-size: 12px; border-radius: 0 0 8px 8px;">
-        <p style="margin: 0 0 5px;">© 2025 SPLASH'N'GO! All rights reserved.</p>
-        <p style="margin: 0;">お問い合わせ: <a href="mailto:info@splashbrothers.co.jp" style="color: #7dd3fc;">info@splashbrothers.co.jp</a> | 050-1748-0947</p>
-      </div>
-    </div>
-    `
-
-    // メール送信
-    const info = await transporter.sendMail({
-      from: process.env.SMTP_FROM || "\"SPLASH'N'GO!\" <noreply@splashngo.example.com>",
-      to,
-      subject,
-      html,
-    })
-
-    console.log("Email sent successfully:", info.messageId)
-    return { success: true, messageId: info.messageId }
-  } catch (error) {
-    console.error("メール送信エラー:", error)
-    throw error
-  }
-}
-
-// パートナー向けメールを送信する関数
-async function sendPartnerEmail(to: string, subject: string, orderNumber: string, storeName: string, items: any[]) {
-  try {
-    console.log("Partner email request received:", {
-      to,
-      subject,
-      orderNumber,
-      storeName,
-      itemCount: items?.length || 0,
-    })
-
-    if (!to || !subject || !orderNumber || !storeName || !items) {
-      console.error("Missing parameters:", { to, subject, orderNumber, storeName, hasItems: !!items })
-      throw new Error("必要なパラメータが不足しています")
-    }
-
-    // 商品リストのHTMLを生成
-    const itemsHtml = items
-      .map(
-        (item) => `
-    <tr>
-      <td style="padding: 8px; border-bottom: 1px solid #eee;">${item.item_name}</td>
-      <td style="padding: 8px; border-bottom: 1px solid #eee;">${item.item_category}</td>
-      <td style="padding: 8px; border-bottom: 1px solid #eee;">${item.selectedSize || "-"}</td>
-      <td style="padding: 8px; border-bottom: 1px solid #eee;">${item.selectedColor || "-"}</td>
-      <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">${item.quantity}</td>
-    </tr>
-  `,
-      )
-      .join("")
-
-    // メール本文のHTML
-    const html = `
-    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-      <div style="background: linear-gradient(to right, #3b82f6, #0ea5e9); color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
-        <h1 style="margin: 0; font-size: 24px;">SPLASH'N'GO!</h1>
-        <p style="margin: 5px 0 0; font-size: 16px;">パートナー様向け発注通知</p>
-      </div>
-      
-      <div style="padding: 25px; background-color: #f0f9ff; border-left: 1px solid #e0f2fe; border-right: 1px solid #e0f2fe;">
-        <p style="color: #334155; margin-bottom: 15px;">平素はお世話になっております。</p>
-        <p style="color: #334155; margin-bottom: 20px;">以下の商品の発注がありましたのでお知らせいたします。</p>
-        
-        <div style="background-color: white; border-radius: 8px; padding: 20px; margin: 20px 0; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid #bae6fd;">
-          <h2 style="margin-top: 0; color: #0284c7; font-size: 18px; border-bottom: 2px solid #e0f2fe; padding-bottom: 10px;">発注情報</h2>
-          <p style="color: #334155;"><strong style="color: #0284c7;">発注番号:</strong> ${orderNumber}</p>
-          <p style="color: #334155;"><strong style="color: #0284c7;">発注店舗:</strong> ${storeName}</p>
-          <p style="color: #334155;"><strong style="color: #0284c7;">発注日時:</strong> ${new Date().toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" })}</p>
-          
-          <h3 style="margin: 20px 0 10px; color: #0284c7; font-size: 16px;">発注商品</h3>
-          <table style="width: 100%; border-collapse: collapse; border-radius: 6px; overflow: hidden;">
-            <thead>
-              <tr style="background-color: #e0f2fe;">
-                <th style="padding: 10px; text-align: left; color: #0284c7; font-weight: 600;">商品名</th>
-                <th style="padding: 10px; text-align: left; color: #0284c7; font-weight: 600;">カテゴリ</th>
-                <th style="padding: 10px; text-align: left; color: #0284c7; font-weight: 600;">サイズ</th>
-                <th style="padding: 10px; text-align: left; color: #0284c7; font-weight: 600;">カラー</th>
-                <th style="padding: 10px; text-align: center; color: #0284c7; font-weight: 600;">数量</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${itemsHtml}
-            </tbody>
-          </table>
-        </div>
-        
-        <p style="color: #334155; background-color: #dbeafe; padding: 12px; border-radius: 6px; border-left: 4px solid #3b82f6;">ご対応のほど、よろしくお願いいたします。</p>
-      </div>
-      
-      <div style="background-color: #0c4a6e; color: white; padding: 15px; text-align: center; font-size: 12px; border-radius: 0 0 8px 8px;">
-        <p style="margin: 0 0 5px;">© 2025 SPLASH'N'GO! All rights reserved.</p>
-        <p style="margin: 0;">お問い合わせ: <a href="mailto:info@splashbrothers.co.jp" style="color: #7dd3fc;">info@splashbrothers.co.jp</a> | 050-1748-0947</p>
-      </div>
-    </div>
-  `
-
-    console.log("Sending partner email to:", to)
-
-    // SMTPの設定をログ出力（パスワードは隠す）
-    console.log("SMTP Configuration:", {
-      host: process.env.SMTP_HOST || "smtp.gmail.com",
-      port: Number(process.env.SMTP_PORT) || 587,
-      secure: process.env.SMTP_SECURE === "true",
-      user: process.env.SMTP_USER ? "設定済み" : "未設定",
-      from: process.env.SMTP_FROM || "\"SPLASH'N'GO!\" <noreply@splashngo.example.com>",
-    })
-
-    // メール送信
-    const info = await transporter.sendMail({
-      from: process.env.SMTP_FROM || "\"SPLASH'N'GO!\" <noreply@splashngo.example.com>",
-      to,
-      subject,
-      html,
-    })
-
-    console.log("Partner email sent successfully:", info.messageId)
-    return { success: true, messageId: info.messageId }
-  } catch (error) {
-    console.error("パートナーメール送信エラー:", error)
-    // エラーの詳細情報をログ出力
-    if (error instanceof Error) {
-      console.error("エラーメッセージ:", error.message)
-      console.error("エラースタック:", error.stack)
-    }
-    throw error
-  }
 }
 
 async function getAuthToken() {
@@ -574,19 +369,41 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     try {
       console.log("Preparing to send email to:", storeInfo.email)
 
-      await sendOrderConfirmationEmail(
-        storeInfo.email,
-        `【SPLASH'N'GO!】発注確認 (${orderNumber})`,
-        orderNumber,
-        storeInfo.name,
-        processedItems,
-        totalAmount || 0,
-      )
+      // baseUrlの取得方法を修正
+      let baseUrl = ""
+      if (process.env.NEXT_PUBLIC_VERCEL_URL) {
+        // Vercel環境の場合はhttpsスキーマを追加
+        baseUrl = `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`
+      } else if (process.env.NEXT_PUBLIC_BASE_URL) {
+        // 明示的に設定されたベースURLがある場合はそれを使用
+        baseUrl = process.env.NEXT_PUBLIC_BASE_URL
+      } else {
+        // ローカル開発環境のフォールバック
+        baseUrl = "http://localhost:3000"
+      }
 
-      console.log("メール送信成功")
+      console.log("Using base URL for API calls:", baseUrl)
+
+      const emailResponse = await fetch(`${baseUrl}/api/send-email`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          to: storeInfo.email,
+          subject: `【SPLASH'N'GO!】発注確認 (${orderNumber})`,
+          orderNumber,
+          storeName: storeInfo.name,
+          items: processedItems,
+          totalAmount: totalAmount || 0,
+        }),
+      })
+
+      if (!emailResponse.ok) {
+        console.error("メール送信に失敗しました:", await emailResponse.text())
+      } else {
+        console.log("メール送信成功:", await emailResponse.json())
+      }
     } catch (emailError) {
       console.error("メール送信エラー:", emailError)
-      // メール送信エラーがあっても処理を続行
     }
 
     // 発注された商品の一覧をログ出力
@@ -660,35 +477,58 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return
     }
 
-    // パートナーメールの送信部分を修正
-    try {
-      // パートナーメールの送信を同期的に処理
-      for (const partnerInfo of Object.values(partnerGroups)) {
-        try {
-          console.log(`Sending email to partner: ${partnerInfo.name} (${partnerInfo.email})`)
+    // パートナーメールの送信
+    const partnerEmailPromises = Object.values(partnerGroups).map(async (partnerInfo) => {
+      try {
+        console.log(`Sending email to partner: ${partnerInfo.name} (${partnerInfo.email})`)
 
-          const result = await sendPartnerEmail(
-            partnerInfo.email,
-            `【SPLASH'N'GO!】発注通知 (${orderNumber})`,
-            orderNumber,
-            storeInfo.name,
-            partnerInfo.items,
-          )
-
-          console.log(`${partnerInfo.name}へのメール送信成功:`, result)
-        } catch (error) {
-          console.error(`${partnerInfo.name}へのメール処理エラー:`, error)
-          // エラーがあっても処理を続行
+        // baseUrlの取得方法を修正
+        let baseUrl = ""
+        if (process.env.NEXT_PUBLIC_VERCEL_URL) {
+          // Vercel環境の場合はhttpsスキーマを追加
+          baseUrl = `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`
+        } else if (process.env.NEXT_PUBLIC_BASE_URL) {
+          // 明示的に設定されたベースURLがある場合はそれを使用
+          baseUrl = process.env.NEXT_PUBLIC_BASE_URL
+        } else {
+          // ローカル開発環境のフォールバック
+          baseUrl = "http://localhost:3000"
         }
-      }
 
-      // すべてのパートナーメール送信処理が完了した後にレスポンスを返す
-      res.status(200).json({ success: true, orderNumber })
-    } catch (error) {
-      console.error("Error in partner email processing:", error)
-      // パートナーメール処理でエラーが発生しても、注文自体は成功として扱う
-      res.status(200).json({ success: true, orderNumber, partnerEmailError: true })
-    }
+        console.log("Using base URL for partner email:", baseUrl)
+
+        // パートナーメールの送信
+        const partnerEmailResponse = await fetch(`${baseUrl}/api/send-partner-email`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            to: partnerInfo.email,
+            subject: `【SPLASH'N'GO!】発注通知 (${orderNumber})`,
+            orderNumber,
+            storeName: storeInfo.name,
+            items: partnerInfo.items,
+          }),
+        })
+
+        const responseText = await partnerEmailResponse.text()
+        if (!partnerEmailResponse.ok) {
+          console.error(`${partnerInfo.name}へのメール送信に失敗しました:`, responseText)
+        } else {
+          console.log(`${partnerInfo.name}へのメール送信成功:`, responseText)
+        }
+      } catch (error) {
+        console.error(`${partnerInfo.name}へのメール処理エラー:`, error)
+      }
+    })
+
+    // パートナーメールの送信を待たずに成功レスポンスを返す
+    // これにより、ユーザー体験が向上し、アプリのパフォーマンスが改善されます
+    res.status(200).json({ success: true, orderNumber })
+
+    // バックグラウンドでパートナーメールの送信を完了
+    Promise.all(partnerEmailPromises).catch((error) => {
+      console.error("Partner email background processing error:", error)
+    })
   } catch (error) {
     console.error("Error saving order:", error)
     res.status(500).json({

@@ -52,6 +52,11 @@ const fourDaysDeliveryItems = ["スプシャン", "スプワックス", "スプ�
 
 // 数量の表示方法を修正する関数
 const formatQuantity = (item) => {
+  // のぼりの商品の場合は「1セット」と表示
+  if (item.item_name.includes("のぼり(6枚1セット)") || item.item_name.includes("のぼり(10枚1セット)")) {
+    return "1セット"
+  }
+
   // 特定の販促グッズの場合は、数量をそのまま表示
   if (specialPromotionalItems.some((name) => item.item_name.includes(name))) {
     return `${item.quantity}枚`
@@ -411,9 +416,7 @@ export default function CartPage() {
 
                           <div className="flex justify-between items-center mt-2">
                             <div className="flex items-center">
-                              <span>
-                                {item.quantity} {getUnit(item.item_name)}
-                              </span>
+                              <span>{formatQuantity(item)}</span>
                             </div>
 
                             {/* 削除ボタン */}

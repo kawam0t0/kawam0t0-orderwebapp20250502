@@ -504,14 +504,20 @@ export default function ProductsPage() {
         }
       }
 
+      // のぼりの商品の場合は、カートに追加する際の数量を調整
+      let cartQuantity = selectedAmount
+      if (product.name.includes("のぼり(6枚1セット)") || product.name.includes("のぼり(10枚1セット)")) {
+        cartQuantity = 1 // のぼりの商品はカート内では「1セット」として扱う
+      }
+
       cartItem = {
         id: product.id,
         item_category: product.category,
         item_name: product.name,
         item_price: selectedPrice,
         lead_time: product.leadTime,
-        selectedQuantity: selectedAmount,
-        quantity: selectedAmount, // 特定の販促グッズの場合は選択された数量
+        selectedQuantity: selectedAmount, // 元の数量は保持
+        quantity: cartQuantity, // 表示用の数量
         partnerName: product.partnerName, // パートナー名を追加
         imageUrl: product.imageUrl, // 画像URLを追加
       }

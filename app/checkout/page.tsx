@@ -48,6 +48,11 @@ type CartItem = {
 
 // 数量の表示方法を修正する関数
 const formatQuantity = (item: CartItem) => {
+  // のぼりの商品の場合は「1セット」と表示
+  if (item.item_name.includes("のぼり(6枚1セット)") || item.item_name.includes("のぼり(10枚1セット)")) {
+    return "1セット"
+  }
+
   // 特定の販促グッズの場合は、数量をそのまま表示
   if (specialPromotionalItems.some((name) => item.item_name.includes(name))) {
     return `${item.quantity}枚`
@@ -166,7 +171,7 @@ export default function CheckoutPage() {
       }
 
       // 4日後の納期を表示する商品（3日後から4日後に変更）
-      if (fourDaysDeliveryItems.some((name) => item.item_name.includes(name))) {
+      if (fourDaysDeliveryItems.some((name) => item.item_name.includes(item))) {
         return addDays(new Date(), 4) // 4日後
       }
 
