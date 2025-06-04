@@ -171,7 +171,7 @@ export default function CheckoutPage() {
       }
 
       // 4日後の納期を表示する商品（3日後から4日後に変更）
-      if (fourDaysDeliveryItems.some((name) => item.item_name.includes(item))) {
+      if (fourDaysDeliveryItems.some((name) => item.item_name.includes(name))) {
         return addDays(new Date(), 4) // 4日後
       }
 
