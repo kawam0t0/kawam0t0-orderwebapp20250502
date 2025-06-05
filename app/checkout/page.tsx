@@ -242,9 +242,33 @@ export default function CheckoutPage() {
     if (savedCart) {
       try {
         const parsedCart = JSON.parse(savedCart)
-        setCartItems(parsedCart)
+
+        // 既存のカートアイテムの価格を修正
+        const correctedCart = parsedCart.map((item: CartItem) => {
+          // 利用規約の価格修正
+          if (item.item_name.includes("利用規約")) {
+            if (item.selectedQuantity === 500) {
+              return { ...item, item_price: "10000" }
+            } else if (item.selectedQuantity === 1000) {
+              return { ...item, item_price: "20000" }
+            }
+          }
+          // お年賀の価格修正
+          else if (item.item_name.includes("お年賀")) {
+            return { ...item, item_price: "25000" }
+          }
+          return item
+        })
+
+        setCartItems(correctedCart)
+
+        // 修正されたカートをローカルストレージに保存
+        if (typeof window !== "undefined") {
+          localStorage.setItem("cart", JSON.stringify(correctedCart))
+        }
+
         // 納期範囲を計算
-        setDeliveryDateRange(calculateDeliveryDateRange(parsedCart))
+        setDeliveryDateRange(calculateDeliveryDateRange(correctedCart))
       } catch (e) {
         console.error("Failed to parse cart data:", e)
         setCartItems([])

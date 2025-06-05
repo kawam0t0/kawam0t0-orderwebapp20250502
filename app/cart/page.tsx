@@ -209,11 +209,32 @@ export default function CartPage() {
     if (savedCart) {
       try {
         const items = JSON.parse(savedCart)
-        setCartItems(items)
+
+        // 既存のカートアイテムの価格を修正
+        const correctedItems = items.map((item: CartItem) => {
+          // 利用規約の価格修正
+          if (item.item_name.includes("利用規約")) {
+            if (item.selectedQuantity === 500) {
+              return { ...item, item_price: "10000" }
+            } else if (item.selectedQuantity === 1000) {
+              return { ...item, item_price: "20000" }
+            }
+          }
+          // お年賀の価格修正
+          else if (item.item_name.includes("お年賀")) {
+            return { ...item, item_price: "25000" }
+          }
+          return item
+        })
+
+        setCartItems(correctedItems)
+
+        // 修正されたカートをローカルストレージに保存
+        localStorage.setItem("cart", JSON.stringify(correctedItems))
 
         // 数量の初期化
         const initialQuantities: { [key: string]: number } = {}
-        items.forEach((item: CartItem) => {
+        correctedItems.forEach((item: CartItem) => {
           initialQuantities[item.id] = item.quantity || 1
         })
         setQuantities(initialQuantities)
@@ -359,6 +380,18 @@ export default function CartPage() {
         <div className="container mx-auto px-4">
           <div className="flex justify-between items-center">
             <h1 className="text-2xl font-bold">ショッピングカート</h1>
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-white border-white hover:bg-white hover:text-blue-600"
+              onClick={() => {
+                localStorage.removeItem("cart")
+                setCartItems([])
+                setQuantities({})
+              }}
+            >
+              カートをクリア
+            </Button>
           </div>
         </div>
       </header>
