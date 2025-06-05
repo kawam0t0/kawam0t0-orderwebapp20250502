@@ -150,6 +150,43 @@ const calculateDeliveryDate = (leadTime: string, category: string, itemName: str
   return `${format(deliveryDate, "yyyy年MM月dd日", { locale: ja })}頃`
 }
 
+// 商品価格の計算（修正版）
+const calculateItemTotal = (item: CartItem) => {
+  // 特定の販促グッズの場合は固定価格を返す
+  if (specialPromotionalItems.some((name) => item.item_name.includes(name))) {
+    // 利用規約の場合は数量に関係なく固定価格
+    if (item.item_name.includes("利用規約")) {
+      // selectedQuantityに基づいて固定価格を返す
+      if (item.selectedQuantity === 500) {
+        return 10000
+      } else if (item.selectedQuantity === 1000) {
+        return 20000
+      }
+      return 10000 // デフォルト
+    }
+    // お年賀の場合は数量に関係なく固定価格
+    if (item.item_name.includes("お年賀")) {
+      return 25000
+    }
+    // その他の販促グッズは選択された数量に対応する固定価格をそのまま使用
+    return Number(String(item.item_price).replace(/[^0-9.-]+/g, ""))
+  }
+
+  // アパレル商品の場合
+  if (isApparelItem(item.item_name)) {
+    const price =
+      typeof item.item_price === "string" ? Number(item.item_price.replace(/[^0-9.-]+/g, "")) : Number(item.item_price)
+    return price * item.quantity
+  }
+
+  // その他の商品の場合
+  else {
+    const price =
+      typeof item.item_price === "string" ? Number(item.item_price.replace(/[^0-9.-]+/g, "")) : Number(item.item_price)
+    return price * item.quantity
+  }
+}
+
 export default function CheckoutPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
@@ -413,47 +450,6 @@ export default function CheckoutPage() {
     // 画像URLがない場合はプレースホルダーを使用
     console.log(`No image URL found for ${item.item_name}, using placeholder`)
     return DEFAULT_PLACEHOLDER_URL
-  }
-
-  // 商品価格の計算（修正版）
-  const calculateItemTotal = (item: CartItem) => {
-    // 特定の販促グッズの場合は固定価格を返す
-    if (specialPromotionalItems.some((name) => item.item_name.includes(name))) {
-      // 利用規約の場合は数量に関係なく固定価格
-      if (item.item_name.includes("利用規約")) {
-        // selectedQuantityに基づいて固定価格を返す
-        if (item.selectedQuantity === 500) {
-          return 10000
-        } else if (item.selectedQuantity === 1000) {
-          return 20000
-        }
-        return 10000 // デフォルト
-      }
-      // お年賀の場合は数量に関係なく固定価格
-      if (item.item_name.includes("お年賀")) {
-        return 25000
-      }
-      // その他の販促グッズは選択された数量に対応する固定価格をそのまま使用
-      return Number(String(item.item_price).replace(/[^0-9.-]+/g, ""))
-    }
-
-    // アパレル商品の場合
-    if (isApparelItem(item.item_name)) {
-      const price =
-        typeof item.item_price === "string"
-          ? Number(item.item_price.replace(/[^0-9.-]+/g, ""))
-          : Number(item.item_price)
-      return price * item.quantity
-    }
-
-    // その他の商品の場合
-    else {
-      const price =
-        typeof item.item_price === "string"
-          ? Number(item.item_price.replace(/[^0-9.-]+/g, ""))
-          : Number(item.item_price)
-      return price * item.quantity
-    }
   }
 
   // 単位を取得する関数

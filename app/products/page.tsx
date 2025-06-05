@@ -487,11 +487,21 @@ export default function ProductsPage() {
       let selectedPrice = "0"
 
       // 商品名に基づいて価格を設定
-      for (const [itemName, options] of Object.entries(FIXED_QUANTITY_PRICE_MAP)) {
-        if (product.name.includes(itemName)) {
-          const option = options.find((opt) => opt.quantity === selectedAmount)
-          if (option) {
-            selectedPrice = option.price.toString()
+      if (product.name.includes("利用規約")) {
+        if (selectedAmount === 500) {
+          selectedPrice = "10000"
+        } else if (selectedAmount === 1000) {
+          selectedPrice = "20000"
+        }
+      } else if (product.name.includes("お年賀")) {
+        selectedPrice = "25000"
+      } else {
+        for (const [itemName, options] of Object.entries(FIXED_QUANTITY_PRICE_MAP)) {
+          if (product.name.includes(itemName)) {
+            const option = options.find((opt) => opt.quantity === selectedAmount)
+            if (option) {
+              selectedPrice = option.price.toString()
+            }
           }
         }
       }
