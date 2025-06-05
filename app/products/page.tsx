@@ -486,16 +486,22 @@ export default function ProductsPage() {
       // 固定数量と価格のマッピングを使用
       let selectedPrice = "0"
 
-      // 商品名に基づいて価格を設定
+      // 利用規約の価格設定
       if (product.name.includes("利用規約")) {
         if (selectedAmount === 500) {
           selectedPrice = "10000"
         } else if (selectedAmount === 1000) {
           selectedPrice = "20000"
+        } else {
+          selectedPrice = "10000" // デフォルト
         }
-      } else if (product.name.includes("お年賀")) {
+      }
+      // お年賀の価格設定
+      else if (product.name.includes("お年賀")) {
         selectedPrice = "25000"
-      } else {
+      }
+      // その他の販促グッズ
+      else {
         for (const [itemName, options] of Object.entries(FIXED_QUANTITY_PRICE_MAP)) {
           if (product.name.includes(itemName)) {
             const option = options.find((opt) => opt.quantity === selectedAmount)
@@ -674,7 +680,20 @@ export default function ProductsPage() {
       return storeSpecificPrice.toLocaleString()
     }
 
-    // 特定の商品の場合は固定価格を返す
+    // 利用規約の価格設定
+    if (isSpecificProduct(product.name, "利用規約")) {
+      const selectedAmount = selectedAmounts[product.id]
+      if (selectedAmount === 500) return "10,000"
+      if (selectedAmount === 1000) return "20,000"
+      return "10,000" // デフォルト
+    }
+
+    // お年賀の価格設定
+    if (isSpecificProduct(product.name, "お年賀")) {
+      return "25,000"
+    }
+
+    // その他の特定商品の価格設定
     if (isSpecificProduct(product.name, "ポイントカード")) {
       const selectedAmount = selectedAmounts[product.id]
       if (selectedAmount === 1000) return "29,370"
@@ -710,16 +729,6 @@ export default function ProductsPage() {
 
     if (isSpecificProduct(product.name, "のぼり(6枚1セット)")) {
       return "19,140"
-    }
-
-    if (isSpecificProduct(product.name, "お年賀")) {
-      return "25,000"
-    }
-
-    if (isSpecificProduct(product.name, "利用規約")) {
-      const selectedAmount = selectedAmounts[product.id]
-      if (selectedAmount === 500) return "10,000"
-      if (selectedAmount === 1000) return "20,000"
     }
 
     if (isSpecificProduct(product.name, "ピッカークロス")) {

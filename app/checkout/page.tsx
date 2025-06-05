@@ -152,22 +152,23 @@ const calculateDeliveryDate = (leadTime: string, category: string, itemName: str
 
 // 商品価格の計算（修正版）
 const calculateItemTotal = (item: CartItem) => {
-  // 特定の販促グッズの場合は固定価格を返す
+  // 利用規約の価格設定
+  if (item.item_name.includes("利用規約")) {
+    if (item.selectedQuantity === 500) {
+      return 10000
+    } else if (item.selectedQuantity === 1000) {
+      return 20000
+    }
+    return 10000 // デフォルト
+  }
+
+  // お年賀の価格設定
+  if (item.item_name.includes("お年賀")) {
+    return 25000
+  }
+
+  // その他の特定の販促グッズの場合
   if (specialPromotionalItems.some((name) => item.item_name.includes(name))) {
-    // 利用規約の場合は数量に関係なく固定価格
-    if (item.item_name.includes("利用規約")) {
-      // selectedQuantityに基づいて固定価格を返す
-      if (item.selectedQuantity === 500) {
-        return 10000
-      } else if (item.selectedQuantity === 1000) {
-        return 20000
-      }
-      return 10000 // デフォルト
-    }
-    // お年賀の場合は数量に関係なく固定価格
-    if (item.item_name.includes("お年賀")) {
-      return 25000
-    }
     // その他の販促グッズは選択された数量に対応する固定価格をそのまま使用
     return Number(String(item.item_price).replace(/[^0-9.-]+/g, ""))
   }
@@ -252,6 +253,7 @@ export default function CheckoutPage() {
             } else if (item.selectedQuantity === 1000) {
               return { ...item, item_price: "20000" }
             }
+            return { ...item, item_price: "10000" }
           }
           // お年賀の価格修正
           else if (item.item_name.includes("お年賀")) {
