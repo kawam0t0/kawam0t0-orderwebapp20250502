@@ -160,10 +160,20 @@ const getProductImage = (item: CartItem, products: any[]) => {
   return DEFAULT_PLACEHOLDER_URL
 }
 
-// 商品価格の計算関数を修正する部分で、お年賀の価格計算を修正
+// 商品価格の計算関数を修正する部分で、利用規約とお年賀の価格計算を修正
 const calculateItemPrice = (item: CartItem) => {
   // 特定の販促グッズの場合は固定価格を返す
   if (specialPromotionalItems.some((name) => item.item_name.includes(name))) {
+    // 利用規約の場合は数量に関係なく固定価格
+    if (item.item_name.includes("利用規約")) {
+      // selectedQuantityに基づいて固定価格を返す
+      if (item.selectedQuantity === 500) {
+        return 10000
+      } else if (item.selectedQuantity === 1000) {
+        return 20000
+      }
+      return 10000 // デフォルト
+    }
     // お年賀の場合は数量に関係なく固定価格
     if (item.item_name.includes("お年賀")) {
       return 25000
