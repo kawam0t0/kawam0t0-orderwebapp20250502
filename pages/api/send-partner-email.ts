@@ -35,18 +35,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       items: PartnerEmailItem[]
     }
 
-    console.log("Partner email request received:", {
-      to,
-      subject,
-      orderNumber,
-      storeName,
-      itemCount: items?.length || 0,
-    })
+    console.log("=== パートナーメール送信開始 ===")
+    console.log("送信先:", to)
+    console.log("件名:", subject)
+    console.log("発注番号:", orderNumber)
+    console.log("店舗名:", storeName)
+    console.log("商品数:", items?.length || 0)
 
     if (!to || !subject || !orderNumber || !storeName || !items) {
-      console.error("Missing parameters:", { to, subject, orderNumber, storeName, hasItems: !!items })
+      console.error("パートナーメール: 必要なパラメータが不足しています:", {
+        to,
+        subject,
+        orderNumber,
+        storeName,
+        hasItems: !!items,
+      })
       return res.status(400).json({ error: "必要なパラメータが不足しています" })
     }
+
+    // SMTP設定の確認
+    console.log("SMTP設定:")
+    console.log("- Host:", process.env.SMTP_HOST || "smtp.gmail.com")
+    console.log("- Port:", Number(process.env.SMTP_PORT) || 587)
+    console.log("- User:", process.env.SMTP_USER ? "設定済み" : "未設定")
+    console.log("- Pass:", process.env.SMTP_PASSWORD ? "設定済み" : "未設定")
 
     // 商品リストのHTMLを生成
     const itemsHtml = items
@@ -108,7 +120,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     </div>
   `
 
-    console.log("Sending partner email to:", to)
+    console.log("パートナーメール送信を実行中...")
 
     // メール送信
     const info = await transporter.sendMail({
@@ -118,7 +130,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       html,
     })
 
-    console.log("Partner email sent successfully:", info.messageId)
+    console.log("パートナーメール送信成功:", info.messageId)
+    console.log("=== パートナーメール送信完了 ===")
+
     res.status(200).json({ success: true, messageId: info.messageId })
   } catch (error) {
     console.error("パートナーメール送信エラー:", error)
@@ -127,4 +141,3 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .json({ error: "メールの送信に失敗しました", details: error instanceof Error ? error.message : "Unknown error" })
   }
 }
-

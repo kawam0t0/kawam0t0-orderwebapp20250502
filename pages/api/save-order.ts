@@ -257,6 +257,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: "Missing required data" })
     }
 
+    console.log("=== 発注処理開始 ===")
+    console.log("発注商品数:", items.length)
+    console.log("店舗情報:", storeInfo.name)
+    console.log("合計金額:", totalAmount)
+
     // 商品情報を処理
     const processedItems = processOrderItems(items)
 
@@ -284,12 +289,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // 発注番号を生成
     const orderNumber = generateOrderNumber()
+    console.log("発注番号:", orderNumber)
 
     // 商品情報とパートナー情報を取得
     const availableItems = await getAvailableItemsWithPartners()
 
     // 商品をシート別に振り分け
     const { hirockItems, regularItems } = categorizeItemsBySheet(processedItems, availableItems)
+
+    console.log("通常アイテム数:", regularItems.length)
+    console.log("ハイロックアイテム数:", hirockItems.length)
 
     // 通常のアイテムがある場合は Order_history シートに追加
     if (regularItems.length > 0) {
@@ -365,54 +374,45 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       console.log("ハイロックデザインオフィスのアイテムを hirock_item_history シートに追加しました")
     }
 
-    // 発注確認メールを送信
+    console.log("=== スプレッドシート保存完了 ===")
+
+    // メール送信処理を開始
+    console.log("=== メール送信処理開始 ===")
+
+    // 1. 発注確認メールを送信（ユーザー向け）
     try {
-      console.log("Preparing to send email to:", storeInfo.email)
+      console.log("発注確認メールを送信中:", storeInfo.email)
 
-      // baseUrlの取得方法を修正
-      let baseUrl = ""
-      if (process.env.NEXT_PUBLIC_VERCEL_URL) {
-        // Vercel環境の場合はhttpsスキーマを追加
-        baseUrl = `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`
-      } else if (process.env.NEXT_PUBLIC_BASE_URL) {
-        // 明示的に設定されたベースURLがある場合はそれを使用
-        baseUrl = process.env.NEXT_PUBLIC_BASE_URL
-      } else {
-        // ローカル開発環境のフォールバック
-        baseUrl = "http://localhost:3000"
-      }
-
-      console.log("Using base URL for API calls:", baseUrl)
-
-      const emailResponse = await fetch(`${baseUrl}/api/send-email`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          to: storeInfo.email,
-          subject: `【SPLASH'N'GO!】発注確認 (${orderNumber})`,
-          orderNumber,
-          storeName: storeInfo.name,
-          items: processedItems,
-          totalAmount: totalAmount || 0,
-        }),
-      })
+      const emailResponse = await fetch(
+        `${req.headers.origin || "https://office-supplies-app.vercel.app"}/api/send-email`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            to: storeInfo.email,
+            subject: `【SPLASH'N'GO!】発注確認 (${orderNumber})`,
+            orderNumber,
+            storeName: storeInfo.name,
+            items: processedItems,
+            totalAmount: totalAmount || 0,
+          }),
+        },
+      )
 
       if (!emailResponse.ok) {
-        console.error("メール送信に失敗しました:", await emailResponse.text())
+        const errorText = await emailResponse.text()
+        console.error("発注確認メール送信に失敗しました:", errorText)
       } else {
-        console.log("メール送信成功:", await emailResponse.json())
+        const emailResult = await emailResponse.json()
+        console.log("発注確認メール送信成功:", emailResult)
       }
     } catch (emailError) {
-      console.error("メール送信エラー:", emailError)
+      console.error("発注確認メール送信エラー:", emailError)
     }
 
-    // 発注された商品の一覧をログ出力
-    console.log(
-      "発注された商品:",
-      processedItems.map((item) => item.item_name),
-    )
+    // 2. パートナー別に商品をグループ化してパートナーメールを送信
+    console.log("パートナーメール送信処理開始")
 
-    // パートナー別に商品をグループ化
     const partnerGroups: { [key: string]: PartnerInfo } = {}
 
     // 各商品のパートナー情報を設定
@@ -450,85 +450,55 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       } else {
         console.log(`商品 ${item.item_name} に一致する商品情報が見つかりません`)
-
-        // 部分一致で検索してみる
-        console.log(
-          "Available_itemsシートの商品名一覧:",
-          availableItems.map((item) => item.name),
-        )
       }
     })
-
-    // デバッグログを追加
-    console.log(
-      "Partner groups:",
-      Object.values(partnerGroups).map((group) => ({
-        partnerName: group.name,
-        partnerEmail: group.email,
-        itemCount: group.items.length,
-        items: group.items.map((item) => item.item_name),
-      })),
-    )
-
-    // パートナーグループが空の場合は早期リターン
-    if (Object.keys(partnerGroups).length === 0) {
-      console.log("パートナー商品がないため、パートナーメールは送信しません")
-      res.status(200).json({ success: true, orderNumber })
-      return
-    }
 
     // パートナーメールの送信
     const partnerEmailPromises = Object.values(partnerGroups).map(async (partnerInfo) => {
       try {
-        console.log(`Sending email to partner: ${partnerInfo.name} (${partnerInfo.email})`)
+        console.log(`パートナーメール送信中: ${partnerInfo.name} (${partnerInfo.email})`)
 
-        // baseUrlの取得方法を修正
-        let baseUrl = ""
-        if (process.env.NEXT_PUBLIC_VERCEL_URL) {
-          // Vercel環境の場合はhttpsスキーマを追加
-          baseUrl = `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`
-        } else if (process.env.NEXT_PUBLIC_BASE_URL) {
-          // 明示的に設定されたベースURLがある場合はそれを使用
-          baseUrl = process.env.NEXT_PUBLIC_BASE_URL
-        } else {
-          // ローカル開発環境のフォールバック
-          baseUrl = "http://localhost:3000"
-        }
+        const partnerEmailResponse = await fetch(
+          `${req.headers.origin || "https://office-supplies-app.vercel.app"}/api/send-partner-email`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              to: partnerInfo.email,
+              subject: `【SPLASH'N'GO!】発注通知 (${orderNumber})`,
+              orderNumber,
+              storeName: storeInfo.name,
+              items: partnerInfo.items,
+            }),
+          },
+        )
 
-        console.log("Using base URL for partner email:", baseUrl)
-
-        // パートナーメールの送信
-        const partnerEmailResponse = await fetch(`${baseUrl}/api/send-partner-email`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            to: partnerInfo.email,
-            subject: `【SPLASH'N'GO!】発注通知 (${orderNumber})`,
-            orderNumber,
-            storeName: storeInfo.name,
-            items: partnerInfo.items,
-          }),
-        })
-
-        const responseText = await partnerEmailResponse.text()
         if (!partnerEmailResponse.ok) {
-          console.error(`${partnerInfo.name}へのメール送信に失敗しました:`, responseText)
+          const errorText = await partnerEmailResponse.text()
+          console.error(`${partnerInfo.name}へのメール送信に失敗しました:`, errorText)
         } else {
-          console.log(`${partnerInfo.name}へのメール送信成功:`, responseText)
+          const partnerResult = await partnerEmailResponse.json()
+          console.log(`${partnerInfo.name}へのメール送信成功:`, partnerResult)
         }
       } catch (error) {
         console.error(`${partnerInfo.name}へのメール処理エラー:`, error)
       }
     })
 
-    // パートナーメールの送信を待たずに成功レスポンスを返す
-    // これにより、ユーザー体験が向上し、アプリのパフォーマンスが改善されます
-    res.status(200).json({ success: true, orderNumber })
+    // パートナーメールの送信を並行して実行
+    if (partnerEmailPromises.length > 0) {
+      console.log(`${partnerEmailPromises.length}件のパートナーメールを送信中...`)
+      await Promise.allSettled(partnerEmailPromises)
+      console.log("パートナーメール送信処理完了")
+    } else {
+      console.log("パートナー商品がないため、パートナーメールは送信しません")
+    }
 
-    // バックグラウンドでパートナーメールの送信を完了
-    Promise.all(partnerEmailPromises).catch((error) => {
-      console.error("Partner email background processing error:", error)
-    })
+    console.log("=== メール送信処理完了 ===")
+    console.log("=== 発注処理完了 ===")
+
+    // 成功レスポンスを返す
+    res.status(200).json({ success: true, orderNumber })
   } catch (error) {
     console.error("Error saving order:", error)
     res.status(500).json({

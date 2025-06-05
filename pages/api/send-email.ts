@@ -21,9 +21,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const { to, subject, orderNumber, storeName, items, totalAmount } = req.body
 
+    console.log("=== 発注確認メール送信開始 ===")
+    console.log("送信先:", to)
+    console.log("件名:", subject)
+    console.log("発注番号:", orderNumber)
+    console.log("店舗名:", storeName)
+    console.log("商品数:", items?.length || 0)
+    console.log("合計金額:", totalAmount)
+
     if (!to || !subject || !orderNumber || !storeName || !items) {
+      console.error("必要なパラメータが不足しています:", { to, subject, orderNumber, storeName, hasItems: !!items })
       return res.status(400).json({ error: "必要なパラメータが不足しています" })
     }
+
+    // SMTP設定の確認
+    console.log("SMTP設定:")
+    console.log("- Host:", process.env.SMTP_HOST || "smtp.gmail.com")
+    console.log("- Port:", Number(process.env.SMTP_PORT) || 587)
+    console.log("- User:", process.env.SMTP_USER ? "設定済み" : "未設定")
+    console.log("- Pass:", process.env.SMTP_PASSWORD ? "設定済み" : "未設定")
 
     // 商品リストのHTMLを生成
     const itemsHtml = items
@@ -92,6 +108,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     </div>
     `
 
+    console.log("メール送信を実行中...")
+
     // メール送信
     const info = await transporter.sendMail({
       from: process.env.SMTP_FROM || "\"SPLASH'N'GO!\" <noreply@splashngo.example.com>",
@@ -100,14 +118,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       html,
     })
 
-    console.log("Email sent successfully:", info.messageId)
+    console.log("発注確認メール送信成功:", info.messageId)
+    console.log("=== 発注確認メール送信完了 ===")
+
     res.status(200).json({ success: true, messageId: info.messageId })
   } catch (error) {
-    console.error("メール送信エラー:", error)
-    res.status(500).json({
-      error: "メールの送信に失敗しました",
-      details: error instanceof Error ? error.message : "Unknown error",
-    })
+    console.error("発注確認メール送信エラー:", error)
+    res
+      .status(500)
+      .json({ error: "メールの送信に失敗しました", details: error instanceof Error ? error.message : "Unknown error" })
   }
 }
-
