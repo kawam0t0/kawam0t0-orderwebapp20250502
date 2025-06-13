@@ -774,21 +774,6 @@ export default function ProductsPage() {
     }
   }
 
-  // 1個あたりの価格を計算（販促グッズ用）
-  const calculatePricePerPiece = (product: Product) => {
-    if (product.category === "販促グッズ" && product.amounts && product.pricesPerPiece) {
-      const selectedAmount = selectedAmounts[product.id]
-      if (!selectedAmount) return null
-
-      const amountIndex = product.amounts.findIndex((amount) => amount === selectedAmount)
-
-      if (amountIndex !== -1 && product.pricesPerPiece[amountIndex]) {
-        return Number(product.pricesPerPiece[amountIndex].replace(/[^0-9.-]+/g, "")).toLocaleString()
-      }
-    }
-    return null
-  }
-
   // 納期の計算（修正版）関数を更新
   const calculateDeliveryDate = (productName: string) => {
     // 3週間後の納期を表示する商品
@@ -1150,14 +1135,6 @@ export default function ProductsPage() {
                       {/* Tシャツとフーディの場合、サイズによって価格が変わることを表示 */}
                       {hasSizeBasedPrice(product.name) && (
                         <p className="text-xs text-gray-500">※サイズによって価格が変わります</p>
-                      )}
-                      {/* 販促グッズの場合、1個あたりの価格を表示 */}
-                      {product.category === "販促グッズ" && product.amounts && product.amounts.length > 0 && (
-                        <>
-                          {calculatePricePerPiece(product) && (
-                            <p className="text-xs text-gray-500">¥{calculatePricePerPiece(product)}/個</p>
-                          )}
-                        </>
                       )}
                     </div>
                   </CardContent>
