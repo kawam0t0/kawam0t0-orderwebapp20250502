@@ -26,6 +26,7 @@ type OrderItem = {
   size: string
   color: string
   quantity: string
+  imageUrl?: string // 画像URLを追加
 }
 
 // 注文の型定義
@@ -53,6 +54,7 @@ type AvailableItem = {
   pricesPerPiece?: string[]
   leadTime: string
   partnerName?: string
+  imageUrl?: string // 画像URLを追加
 }
 
 // 日付を安全に解析する関数
@@ -97,6 +99,7 @@ export default function AdminPage() {
       if (response.ok) {
         const data = await response.json()
         setAvailableItems(data)
+        console.log("Available items loaded:", data.length)
       } else {
         console.error("Failed to fetch available items")
       }
@@ -231,8 +234,8 @@ export default function AdminPage() {
         throw new Error("Failed to update order status")
       }
 
-      // 出荷日を更新（出荷済みの場合のみ）
-      if (newStatus === "出荷済み" && shippingDate) {
+      // 出荷日を更新（対応中または出荷済みの場合のみ）
+      if ((newStatus === "対応中" || newStatus === "出荷済み") && shippingDate) {
         const shippingResponse = await fetch("/api/update-shipping-date", {
           method: "POST",
           headers: {
@@ -243,6 +246,37 @@ export default function AdminPage() {
 
         if (!shippingResponse.ok) {
           throw new Error("Failed to update shipping date")
+        }
+
+        // 対応中ステータスで出荷日が設定された場合、出荷通知メールを送信
+        if (newStatus === "対応中" && shippingDate) {
+          try {
+            // 該当する注文を検索してメール送信
+            const targetOrder = orders.find((order) => order.orderNumber === orderNumber)
+            if (targetOrder && targetOrder.email) {
+              const emailResponse = await fetch("/api/send-shipping-notification", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  to: targetOrder.email,
+                  orderNumber: orderNumber,
+                  storeName: targetOrder.storeName,
+                  shippingDate: shippingDate,
+                  items: targetOrder.items,
+                }),
+              })
+
+              if (!emailResponse.ok) {
+                console.error("出荷通知メールの送信に失敗しました")
+              } else {
+                console.log("出荷通知メールを送信しました")
+              }
+            }
+          } catch (emailError) {
+            console.error("出荷通知メール送信エラー:", emailError)
+          }
         }
       }
 
