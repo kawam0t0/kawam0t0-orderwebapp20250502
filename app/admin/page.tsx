@@ -320,6 +320,14 @@ export default function AdminPage() {
                 処理中
               </Button>
               <Button
+                variant={statusFilter === "対応中" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setStatusFilter("対応中")}
+                className={statusFilter === "対応中" ? "bg-blue-600 text-white" : ""}
+              >
+                対応中
+              </Button>
+              <Button
                 variant={statusFilter === "出荷済み" ? "default" : "outline"}
                 size="sm"
                 onClick={() => setStatusFilter("出荷済み")}
