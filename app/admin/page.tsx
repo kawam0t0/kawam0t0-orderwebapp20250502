@@ -248,12 +248,14 @@ export default function AdminPage() {
           throw new Error("Failed to update shipping date")
         }
 
-        // 対応中ステータスで出荷日が設定された場合、出荷通知メールを送信
-        if (newStatus === "対応中" && shippingDate) {
+        // 出荷済みステータスで出荷日が設定された場合のみ、出荷通知メールを送信
+        if (newStatus === "出荷済み" && shippingDate) {
           try {
             // 該当する注文を検索してメール送信
             const targetOrder = orders.find((order) => order.orderNumber === orderNumber)
             if (targetOrder && targetOrder.email) {
+              console.log("出荷通知メールを送信中:", orderNumber)
+
               const emailResponse = await fetch("/api/send-shipping-notification", {
                 method: "POST",
                 headers: {
@@ -271,7 +273,7 @@ export default function AdminPage() {
               if (!emailResponse.ok) {
                 console.error("出荷通知メールの送信に失敗しました")
               } else {
-                console.log("出荷通知メールを送信しました")
+                console.log("出荷通知メールを送信しました:", orderNumber)
               }
             }
           } catch (emailError) {
