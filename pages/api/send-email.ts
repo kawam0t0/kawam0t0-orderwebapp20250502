@@ -23,6 +23,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     console.log("=== 発注確認メール送信開始 ===")
     console.log("送信先:", to)
+    console.log("Cc:", "info@splashbrothers.co.jp")
     console.log("件名:", subject)
     console.log("発注番号:", orderNumber)
     console.log("店舗名:", storeName)
@@ -110,10 +111,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     console.log("メール送信を実行中...")
 
-    // メール送信
+    // メール送信（Ccを追加）
     const info = await transporter.sendMail({
       from: process.env.SMTP_FROM || "\"SPLASH'N'GO!\" <noreply@splashngo.example.com>",
       to,
+      cc: "info@splashbrothers.co.jp", // Ccを追加
       subject,
       html,
     })
