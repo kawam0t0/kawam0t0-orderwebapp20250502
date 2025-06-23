@@ -77,7 +77,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       doc.text("Splash Brothers Inc.", 20, 85)
       doc.text(`Email: ${storeInfo.email}`, 20, 95)
 
-      // TO情報
+      // TO情報（改行を追加して短く）
       doc.setFont("helvetica", "bold")
       doc.text("TO:", 110, 75)
       doc.setFont("helvetica", "normal")
@@ -85,29 +85,31 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       doc.text("Tel: +8618226629892", 110, 95)
       doc.text("Liv Wang", 110, 105)
       doc.text("Email: liv@topwellclean.com", 110, 115)
-      doc.text("Add: #3 Building, Room 3001, Jiaqiao Lehu Mansion,", 110, 125)
-      doc.text("     Fanhua Avenue Road, Economic Development Zone,", 110, 135)
-      doc.text("     Hefei City, Anhui Province, China", 110, 145)
+      doc.text("Add: #3 Building, Room 3001,", 110, 125)
+      doc.text("     Jiaqiao Lehu Mansion,", 110, 135)
+      doc.text("     Fanhua Avenue Road, Economic", 110, 145)
+      doc.text("     Development Zone,", 110, 155)
+      doc.text("     Hefei City, Anhui Province, China", 110, 165)
 
       // 配送方法
       doc.setFont("helvetica", "bold")
-      doc.text(`Shipping Method: `, 20, 165)
+      doc.text(`Shipping Method: `, 20, 185)
       doc.setFont("helvetica", "normal")
-      doc.text(`${getShippingMethodText(shippingMethod)}`, 65, 165)
+      doc.text(`${getShippingMethodText(shippingMethod)}`, 65, 185)
 
       // テーブルヘッダー（位置と幅を調整）
       doc.setFont("helvetica", "bold")
-      doc.text("Item Name", 20, 185)
-      doc.text("Category", 85, 185)
-      doc.text("Store", 125, 185)
-      doc.text("Qty", 165, 185)
+      doc.text("Item Name", 20, 205)
+      doc.text("Category", 85, 205)
+      doc.text("Store", 125, 205)
+      doc.text("Qty", 165, 205)
 
       // ヘッダー下の線
-      doc.line(20, 190, 185, 190)
+      doc.line(20, 210, 185, 210)
 
       // アイテムリスト
       doc.setFont("helvetica", "normal")
-      let yPosition = 200
+      let yPosition = 220
       items.forEach((item, index) => {
         // 長い文字列は適切に切り詰める
         const itemName = item.itemName.length > 30 ? item.itemName.substring(0, 27) + "..." : item.itemName
@@ -130,8 +132,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       doc.text(`Total Items: ${items.length}`, 20, yPosition)
       doc.text(`Total Quantity: ${items.reduce((sum, item) => sum + item.quantity, 0)}`, 125, yPosition)
 
-      // Shipping Address（適切なサイズの四角い枠で囲む）
+      // Shipping Address（ページの残りスペースをチェック）
       yPosition += 25
+      const pageHeight = 297 // A4の高さ（mm）
+      const remainingSpace = pageHeight - yPosition
+      const requiredSpace = 65 // Shipping Addressに必要なスペース
+
+      // 残りスペースが足りない場合は新しいページを追加
+      if (remainingSpace < requiredSpace) {
+        doc.addPage()
+        yPosition = 30 // 新しいページの開始位置
+      }
 
       // 四角い枠を描画（高さを調整）
       const boxHeight = 55
