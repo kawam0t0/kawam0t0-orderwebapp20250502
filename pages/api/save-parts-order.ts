@@ -125,8 +125,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     console.log("=== 部品発注データ保存完了 ===")
 
-    // 成功レスポンスを返す
-    res.status(200).json({ success: true, orderNumber })
+    // 成功レスポンスを返す（発注書生成用のデータも含める）
+    res.status(200).json({
+      success: true,
+      orderNumber,
+      orderData: {
+        items,
+        storeInfo,
+        shippingMethod,
+      },
+    })
   } catch (error) {
     console.error("Error saving parts order:", error)
     res.status(500).json({

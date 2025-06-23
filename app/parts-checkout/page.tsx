@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, Truck, Download, Package, FileText } from "lucide-react"
+import { ArrowLeft, Truck, Package } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -58,42 +58,6 @@ export default function PartsCheckoutPage() {
     }
   }, [])
 
-  // 発注書をダウンロード
-  const downloadPurchaseOrder = async (format: "pdf" | "excel") => {
-    try {
-      const response = await fetch("/api/generate-purchase-order", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          items: cartItems,
-          storeInfo,
-          shippingMethod,
-          format,
-        }),
-      })
-
-      if (!response.ok) {
-        throw new Error("Failed to generate purchase order")
-      }
-
-      const blob = await response.blob()
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement("a")
-      a.style.display = "none"
-      a.href = url
-      a.download = `purchase_order_${Date.now()}.${format === "pdf" ? "pdf" : "xlsx"}`
-      document.body.appendChild(a)
-      a.click()
-      window.URL.revokeObjectURL(url)
-      document.body.removeChild(a)
-    } catch (error) {
-      console.error("Error downloading purchase order:", error)
-      alert("発注書のダウンロードに失敗しました")
-    }
-  }
-
   // 注文の確定
   const handleSubmitOrder = async () => {
     if (!storeInfo) {
@@ -129,8 +93,9 @@ export default function PartsCheckoutPage() {
         throw new Error(data.error || "発注の保存に失敗しました")
       }
 
-      // 発注番号をセッションストレージに保存
+      // 発注番号と発注データをセッションストレージに保存
       sessionStorage.setItem("partsOrderNumber", data.orderNumber)
+      sessionStorage.setItem("partsOrderData", JSON.stringify(data.orderData))
 
       // カートをクリア
       localStorage.removeItem("partsCart")
@@ -225,7 +190,7 @@ export default function PartsCheckoutPage() {
                       <Label htmlFor="air" className="font-medium">
                         Air shipment
                       </Label>
-                      <p className="text-sm text-muted-foreground">航空便での配送（最速）</p>
+                      <p className="text-sm text-muted-foreground">航空便での配送</p>
                     </div>
                   </div>
                   <div className="flex items-start space-x-2 p-3 rounded border hover:bg-yellow-50 transition-colors">
@@ -234,7 +199,7 @@ export default function PartsCheckoutPage() {
                       <Label htmlFor="sea" className="font-medium">
                         Sea shipment
                       </Label>
-                      <p className="text-sm text-muted-foreground">船便での配送（経済的）</p>
+                      <p className="text-sm text-muted-foreground">船便での配送</p>
                     </div>
                   </div>
                   <div className="flex items-start space-x-2 p-3 rounded border hover:bg-yellow-50 transition-colors">
@@ -302,31 +267,6 @@ export default function PartsCheckoutPage() {
                     <span className="text-sm">{getShippingMethodLabel(shippingMethod)}</span>
                   </div>
                   <Separator className="my-4" />
-                </div>
-
-                {/* 発注書ダウンロード */}
-                <div className="space-y-3 mb-6">
-                  <h3 className="font-medium text-gray-700">発注書ダウンロード</h3>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => downloadPurchaseOrder("pdf")}
-                      className="flex-1 border-yellow-300 text-yellow-700 hover:bg-yellow-50"
-                    >
-                      <FileText className="h-4 w-4 mr-1" />
-                      PDF
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => downloadPurchaseOrder("excel")}
-                      className="flex-1 border-yellow-300 text-yellow-700 hover:bg-yellow-50"
-                    >
-                      <Download className="h-4 w-4 mr-1" />
-                      Excel
-                    </Button>
-                  </div>
                 </div>
 
                 {orderError && (
