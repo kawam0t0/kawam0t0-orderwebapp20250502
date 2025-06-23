@@ -20,7 +20,7 @@ type StoreInfo = {
   id: string
   name: string
   email: string
-  password?: string
+  password: string
 }
 
 export default function LoginPage() {
@@ -39,44 +39,44 @@ export default function LoginPage() {
     const fetchStores = async () => {
       setFetchingStores(true)
       try {
+        console.log("店舗情報を取得中...")
         const response = await fetch(`/api/sheets?sheet=store_info!A2:G`)
         if (!response.ok) {
           throw new Error(`店舗情報の取得に失敗しました (${response.status})`)
         }
 
         const data = await response.json()
+        console.log("取得したスプレッドシートデータ:", data)
 
-        // 店舗データを整形（部品発注の選択肢を追加）
-        const storeList = [
-          {
-            id: "parts_order",
-            name: "部品発注",
-            email: "parts@splashbrothers.co.jp",
-            password: "parts2025",
-          },
-          ...data
-            .map((store: any[]) => ({
-              id: store[0] || "",
-              name: store[1] || "",
-              email: store[5] || "",
-              password: store[6] || "",
-            }))
-            .filter((store: StoreInfo) => store.id && store.name),
-        ]
+        // スプレッドシートのデータを整形
+        const storeList = data
+          .map((row: any[], index: number) => {
+            const storeData = {
+              id: row[0] || `store_${index}`, // A列: ID（空の場合は自動生成）
+              name: row[1] || "", // B列: 店舗名
+              email: row[5] || "", // F列: メールアドレス
+              password: row[6] || "", // G列: パスワード
+            }
+            console.log(`店舗データ ${index}:`, storeData)
+            return storeData
+          })
+          .filter((store: StoreInfo) => store.name && store.name.trim() !== "") // 店舗名が空でないもののみ
 
+        console.log("整形後の店舗リスト:", storeList)
         setStores(storeList)
-        console.log("Loaded stores:", storeList) // デバッグ用ログを追加
         console.log(`${storeList.length}件の店舗情報を取得しました`)
       } catch (err) {
         console.error("店舗情報取得エラー:", err)
         setError("店舗情報の取得に失敗しました。ネットワーク接続を確認してください。")
 
-        // テスト用のダミーデータを設定（部品発注を含む）
-        setStores([
+        // テスト用のダミーデータを設定
+        const testStores = [
           { id: "parts_order", name: "部品発注", email: "parts@splashbrothers.co.jp", password: "parts2025" },
           { id: "store1", name: "テスト店舗1", email: "test1@example.com", password: "password1" },
           { id: "store2", name: "テスト店舗2", email: "test2@example.com", password: "password2" },
-        ])
+        ]
+        setStores(testStores)
+        console.log("テストデータを設定しました:", testStores)
       } finally {
         setFetchingStores(false)
       }
@@ -87,11 +87,13 @@ export default function LoginPage() {
 
   // 店舗選択時の処理
   const handleStoreChange = (storeId: string) => {
+    console.log("店舗が選択されました:", storeId)
     setSelectedStore(storeId)
 
     // 選択された店舗のメールアドレスを自動入力
     const selectedStoreData = stores.find((store) => store.id === storeId)
     if (selectedStoreData && selectedStoreData.email) {
+      console.log("メールアドレスを自動入力:", selectedStoreData.email)
       setEmail(selectedStoreData.email)
     }
   }
@@ -114,14 +116,16 @@ export default function LoginPage() {
     setError("")
 
     try {
+      console.log("=== ログイン処理デバッグ ===")
+      console.log("選択された店舗ID:", selectedStore)
+      console.log("入力されたメール:", email)
+      console.log("入力されたパスワード:", password)
+
       // 選択された店舗とメール・パスワードが一致するか確認
       const storeData = stores.find(
         (store) => store.id === selectedStore && store.email === email && store.password === password,
       )
 
-      console.log("=== ログイン処理デバッグ ===")
-      console.log("選択された店舗ID:", selectedStore)
-      console.log("入力されたメール:", email)
       console.log("見つかった店舗データ:", storeData)
 
       if (storeData) {
@@ -135,14 +139,12 @@ export default function LoginPage() {
         localStorage.setItem("storeInfo", JSON.stringify(storeInfo))
         console.log("保存された店舗情報:", storeInfo)
 
-        // 部品発注かどうかを確実にチェック
-        if (selectedStore === "parts_order") {
+        // 店舗名に基づいて遷移先を決定
+        if (storeData.name === "部品発注") {
           console.log("部品発注が選択されました - /partsページに遷移します")
-          // 確実にpartsページに遷移
           window.location.href = "/parts"
         } else {
           console.log("通常の店舗が選択されました - /productsページに遷移します")
-          // 通常の店舗の場合はproductsページに遷移します
           window.location.href = "/products"
         }
       } else {
@@ -166,7 +168,7 @@ export default function LoginPage() {
     <div
       className="min-h-screen flex items-center justify-center p-4 relative"
       style={{
-        backgroundImage: `url('https://hebbkx1anhila5yf.public.blob.vercel-storage.com/%E3%83%AD%E3%82%B3%E3%82%99-6PmM1INcDPXGveCta0ZxgG7TLPF9gO.png')`,
+        backgroundImage: `url('https://hebbkx1anhila5yf.public.blob.vercel-storage.com/%E3%83%AD%E3%82%B4%E3%82%99-6PmM1INcDPXGveCta0ZxgG7TLPF9gO.png')`,
         backgroundSize: "cover",
         backgroundPosition: "center",
         backgroundRepeat: "no-repeat",
@@ -203,7 +205,7 @@ export default function LoginPage() {
                     </SelectTrigger>
                     <SelectContent>
                       {stores.map((store) => (
-                        <SelectItem key={store.id} value={store.id}>
+                        <SelectItem key={store.id} value={store.id || `fallback_${store.name}`}>
                           {store.name}
                         </SelectItem>
                       ))}
