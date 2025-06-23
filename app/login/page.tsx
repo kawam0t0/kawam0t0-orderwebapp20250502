@@ -32,32 +32,47 @@ export default function LoginPage() {
   const [error, setError] = useState("")
   const [stores, setStores] = useState<StoreInfo[]>([])
   const [showPassword, setShowPassword] = useState(false)
+  const [fetchingStores, setFetchingStores] = useState(true)
 
   // 店舗情報を取得
   useEffect(() => {
     const fetchStores = async () => {
+      setFetchingStores(true)
       try {
         const response = await fetch(`/api/sheets?sheet=store_info!A2:G`)
         if (!response.ok) {
-          throw new Error("店舗情報の取得に失敗しました")
+          throw new Error(`店舗情報の取得に失敗しました (${response.status})`)
         }
 
         const data = await response.json()
 
-        // 店舗データを整形
-        const storeList = data
-          .map((store: any[]) => ({
-            id: store[0] || "",
-            name: store[1] || "",
-            email: store[5] || "",
-            password: store[6] || "", // パスワードカラムを追加
-          }))
-          .filter((store: StoreInfo) => store.id && store.name) // 有効なデータのみ
+        // 店舗データを整形（部品発注の選択肢を追加）
+        const storeList = [
+          { id: "parts_order", name: "部品発注", email: "parts@splashbrothers.co.jp", password: "parts2025" },
+          ...data
+            .map((store: any[]) => ({
+              id: store[0] || "",
+              name: store[1] || "",
+              email: store[5] || "",
+              password: store[6] || "",
+            }))
+            .filter((store: StoreInfo) => store.id && store.name),
+        ]
 
         setStores(storeList)
+        console.log(`${storeList.length}件の店舗情報を取得しました`)
       } catch (err) {
         console.error("店舗情報取得エラー:", err)
-        setError("店舗情報の取得に失敗しました")
+        setError("店舗情報の取得に失敗しました。ネットワーク接続を確認してください。")
+
+        // テスト用のダミーデータを設定（部品発注を含む）
+        setStores([
+          { id: "parts_order", name: "部品発注", email: "parts@splashbrothers.co.jp", password: "parts2025" },
+          { id: "store1", name: "テスト店舗1", email: "test1@example.com", password: "password1" },
+          { id: "store2", name: "テスト店舗2", email: "test2@example.com", password: "password2" },
+        ])
+      } finally {
+        setFetchingStores(false)
       }
     }
 
@@ -108,8 +123,12 @@ export default function LoginPage() {
 
         localStorage.setItem("storeInfo", JSON.stringify(storeInfo))
 
-        // 商品一覧ページにリダイレクト
-        router.push("/products")
+        // 部品発注の場合は部品一覧ページに、それ以外は商品一覧ページにリダイレクト
+        if (selectedStore === "parts_order") {
+          router.push("/parts")
+        } else {
+          router.push("/products")
+        }
       } else {
         setError("メールアドレスまたはパスワードが正しくありません")
       }
@@ -150,75 +169,85 @@ export default function LoginPage() {
           <CardContent className="space-y-6 pt-6">
             <p className="text-center text-gray-600">ログインしてください</p>
 
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="store" className="flex items-center text-gray-700">
-                  <Store className="h-4 w-4 mr-2 text-blue-600" />
-                  店舗名
-                </Label>
-                <Select value={selectedStore} onValueChange={handleStoreChange}>
-                  <SelectTrigger className="border-blue-200 focus:border-blue-400">
-                    <SelectValue placeholder="店舗を選択してください" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {stores.map((store) => (
-                      <SelectItem key={store.id} value={store.id}>
-                        {store.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            {fetchingStores ? (
+              <div className="flex justify-center py-4">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="email" className="flex items-center text-gray-700">
-                  <User className="h-4 w-4 mr-2 text-blue-600" />
-                  メールアドレス
-                </Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="example@company.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="border-blue-200 focus:border-blue-400"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="password" className="flex items-center text-gray-700">
-                  <Lock className="h-4 w-4 mr-2 text-blue-600" />
-                  パスワード
-                </Label>
-                <div className="relative">
-                  <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="パスワードを入力"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="border-blue-200 focus:border-blue-400 pr-10"
-                  />
-                  <button
-                    type="button"
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                    onClick={() => setShowPassword(!showPassword)}
-                  >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
+            ) : (
+              <form onSubmit={handleLogin} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="store" className="flex items-center text-gray-700">
+                    <Store className="h-4 w-4 mr-2 text-blue-600" />
+                    店舗名
+                  </Label>
+                  <Select value={selectedStore} onValueChange={handleStoreChange}>
+                    <SelectTrigger className="border-blue-200 focus:border-blue-400">
+                      <SelectValue placeholder="店舗を選択してください" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {stores.map((store) => (
+                        <SelectItem key={store.id} value={store.id}>
+                          {store.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-              </div>
 
-              {error && (
-                <Alert className="bg-red-50 border-red-200 text-red-800">
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="flex items-center text-gray-700">
+                    <User className="h-4 w-4 mr-2 text-blue-600" />
+                    メールアドレス
+                  </Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="example@company.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="border-blue-200 focus:border-blue-400"
+                  />
+                </div>
 
-              <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2" disabled={loading}>
-                {loading ? "ログイン中..." : "ログイン"}
-              </Button>
-            </form>
+                <div className="space-y-2">
+                  <Label htmlFor="password" className="flex items-center text-gray-700">
+                    <Lock className="h-4 w-4 mr-2 text-blue-600" />
+                    パスワード
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="パスワードを入力"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="border-blue-200 focus:border-blue-400 pr-10"
+                    />
+                    <button
+                      type="button"
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                {error && (
+                  <Alert className="bg-red-50 border-red-200 text-red-800">
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
+
+                <Button
+                  type="submit"
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2"
+                  disabled={loading}
+                >
+                  {loading ? "ログイン中..." : "ログイン"}
+                </Button>
+              </form>
+            )}
 
             {/* 管理者ログインボタン */}
             <div className="pt-2">
@@ -249,4 +278,3 @@ export default function LoginPage() {
     </div>
   )
 }
-
