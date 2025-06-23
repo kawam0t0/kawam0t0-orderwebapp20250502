@@ -48,7 +48,12 @@ export default function LoginPage() {
 
         // 店舗データを整形（部品発注の選択肢を追加）
         const storeList = [
-          { id: "parts_order", name: "部品発注", email: "parts@splashbrothers.co.jp", password: "parts2025" },
+          {
+            id: "parts_order",
+            name: "部品発注",
+            email: "parts@splashbrothers.co.jp",
+            password: "parts2025",
+          },
           ...data
             .map((store: any[]) => ({
               id: store[0] || "",
@@ -60,6 +65,7 @@ export default function LoginPage() {
         ]
 
         setStores(storeList)
+        console.log("Loaded stores:", storeList) // デバッグ用ログを追加
         console.log(`${storeList.length}件の店舗情報を取得しました`)
       } catch (err) {
         console.error("店舗情報取得エラー:", err)
@@ -123,10 +129,16 @@ export default function LoginPage() {
 
         localStorage.setItem("storeInfo", JSON.stringify(storeInfo))
 
+        // デバッグ用ログを追加
+        console.log("Selected store ID:", selectedStore)
+        console.log("Redirecting to:", selectedStore === "parts_order" ? "/parts" : "/products")
+
         // 部品発注の場合は部品一覧ページに、それ以外は商品一覧ページにリダイレクト
         if (selectedStore === "parts_order") {
+          console.log("Redirecting to parts page")
           router.push("/parts")
         } else {
+          console.log("Redirecting to products page")
           router.push("/products")
         }
       } else {
