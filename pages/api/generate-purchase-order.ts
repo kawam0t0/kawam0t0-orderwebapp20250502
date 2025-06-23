@@ -72,31 +72,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       doc.text("Splash Brothers Inc.", 20, 80)
       doc.text(`Email: ${storeInfo.email}`, 20, 90)
 
-      // 配送先情報
+      // 配送先情報（TO:）
       doc.text("TO:", 120, 70)
-      doc.text("Haitain", 120, 80)
-      doc.text("Email: info@splashbrothers.co.jp", 120, 90)
-      doc.text("Shipping Address:", 120, 100)
-      doc.text("SPLASH'N'GO!Maebashi50gou", 120, 110)
-      doc.text("Person in Charge", 120, 120)
-      doc.text("2-4-15 Amagawa-Oshima-machi, Maebashi-shi", 120, 130)
-      doc.text("Gunma 379-2154", 120, 140)
-      doc.text("Japan", 120, 150)
+      doc.text("Hefei Topwell Machinery Co., Ltd.", 120, 80)
+      doc.text("Tel: +8618226629892", 120, 90)
+      doc.text("Liv Wang", 120, 100)
+      doc.text("Email: liv@topwellclean.com", 120, 110)
+      doc.text("Add: #3 Building, Room 3001, Jiaqiao Lehu Mansion,", 120, 120)
+      doc.text("Fanhua Avenue Road, Economic Development Zone,", 120, 130)
+      doc.text("Hefei City, Anhui Province, China", 120, 140)
 
-      // 配送方法の位置を調整（下に移動）
-      doc.text(`Shipping Method: ${getShippingMethodText(shippingMethod)}`, 20, 170)
+      // 配送方法
+      doc.text(`Shipping Method: ${getShippingMethodText(shippingMethod)}`, 20, 160)
 
-      // テーブルヘッダーの位置を調整（下に移動）
-      doc.text("Item", 20, 190)
-      doc.text("Category", 80, 190)
-      doc.text("Store", 120, 190)
-      doc.text("Qty", 170, 190)
+      // テーブルヘッダー
+      doc.text("Item", 20, 180)
+      doc.text("Category", 80, 180)
+      doc.text("Store", 120, 180)
+      doc.text("Qty", 170, 180)
 
-      // 線を引く位置を調整
-      doc.line(20, 195, 190, 195)
+      // 線を引く
+      doc.line(20, 185, 190, 185)
 
-      // アイテムリストの開始位置を調整
-      let yPosition = 205
+      // アイテムリスト
+      let yPosition = 195
       items.forEach((item, index) => {
         doc.text(item.itemName.substring(0, 25), 20, yPosition)
         doc.text(item.category, 80, yPosition)
@@ -110,6 +109,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       yPosition += 10
       doc.text(`Total Items: ${items.length}`, 20, yPosition)
       doc.text(`Total Quantity: ${items.reduce((sum, item) => sum + item.quantity, 0)}`, 120, yPosition)
+
+      // Shipping Address（四角い枠で囲む）
+      yPosition += 20
+
+      // 四角い枠を描画
+      doc.rect(20, yPosition, 170, 50)
+
+      // Shipping Address内容
+      yPosition += 10
+      doc.text("Shipping Address:", 25, yPosition)
+      yPosition += 8
+      doc.text("SPLASH'N'GO!", 25, yPosition)
+      yPosition += 8
+      doc.text("Attn: Person in Charge", 25, yPosition)
+      yPosition += 8
+      doc.text("2-4-15 Amagawa-Oshima-machi, Maebashi-shi", 25, yPosition)
+      yPosition += 8
+      doc.text("Gunma 379-2154", 25, yPosition)
+      yPosition += 8
+      doc.text("Japan", 25, yPosition)
 
       const pdfBuffer = Buffer.from(doc.output("arraybuffer"))
 
@@ -129,13 +148,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         ["FROM:", "Splash Brothers Inc."],
         ["Email:", storeInfo.email],
         [],
-        ["TO:", "Haitain"],
-        ["Email:", "info@splashbrothers.co.jp"],
-        ["Shipping Address:", "SPLASH'N'GO!Maebashi50gou"],
-        ["", "Person in Charge"],
-        ["", "2-4-15 Amagawa-Oshima-machi, Maebashi-shi"],
-        ["", "Gunma 379-2154"],
-        ["", "Japan"],
+        ["TO:", "Hefei Topwell Machinery Co., Ltd."],
+        ["Tel:", "+8618226629892"],
+        ["Contact:", "Liv Wang"],
+        ["Email:", "liv@topwellclean.com"],
+        ["Address:", "#3 Building, Room 3001, Jiaqiao Lehu Mansion,"],
+        ["", "Fanhua Avenue Road, Economic Development Zone,"],
+        ["", "Hefei City, Anhui Province, China"],
         [],
         [`Shipping Method: ${getShippingMethodText(shippingMethod)}`],
         [],
@@ -144,6 +163,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         [],
         ["Total Items:", items.length],
         ["Total Quantity:", items.reduce((sum, item) => sum + item.quantity, 0)],
+        [],
+        ["=== SHIPPING ADDRESS ==="],
+        ["Shipping Address:", "SPLASH'N'GO!"],
+        ["Attn:", "Person in Charge"],
+        ["Address:", "2-4-15 Amagawa-Oshima-machi, Maebashi-shi"],
+        ["", "Gunma 379-2154"],
+        ["Country:", "Japan"],
       ]
 
       const worksheet = XLSX.utils.aoa_to_sheet(worksheetData)
