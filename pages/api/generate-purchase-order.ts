@@ -69,28 +69,34 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       // 発注者情報
       doc.text("FROM:", 20, 70)
-      doc.text(`${storeInfo.name}`, 20, 80)
+      doc.text("Splash Brothers Inc.", 20, 80)
       doc.text(`Email: ${storeInfo.email}`, 20, 90)
 
       // 配送先情報
       doc.text("TO:", 120, 70)
-      doc.text("SPLASH'N'GO! Parts Supplier", 120, 80)
-      doc.text("China", 120, 90)
+      doc.text("Haitain", 120, 80)
+      doc.text("Email: info@splashbrothers.co.jp", 120, 90)
+      doc.text("Shipping Address:", 120, 100)
+      doc.text("SPLASH'N'GO!Maebashi50gou", 120, 110)
+      doc.text("Person in Charge", 120, 120)
+      doc.text("2-4-15 Amagawa-Oshima-machi, Maebashi-shi", 120, 130)
+      doc.text("Gunma 379-2154", 120, 140)
+      doc.text("Japan", 120, 150)
 
-      // 配送方法
-      doc.text(`Shipping Method: ${getShippingMethodText(shippingMethod)}`, 20, 110)
+      // 配送方法の位置を調整（下に移動）
+      doc.text(`Shipping Method: ${getShippingMethodText(shippingMethod)}`, 20, 170)
 
-      // テーブルヘッダー
-      doc.text("Item", 20, 130)
-      doc.text("Category", 80, 130)
-      doc.text("Store", 120, 130)
-      doc.text("Qty", 170, 130)
+      // テーブルヘッダーの位置を調整（下に移動）
+      doc.text("Item", 20, 190)
+      doc.text("Category", 80, 190)
+      doc.text("Store", 120, 190)
+      doc.text("Qty", 170, 190)
 
-      // 線を引く
-      doc.line(20, 135, 190, 135)
+      // 線を引く位置を調整
+      doc.line(20, 195, 190, 195)
 
-      // アイテムリスト
-      let yPosition = 145
+      // アイテムリストの開始位置を調整
+      let yPosition = 205
       items.forEach((item, index) => {
         doc.text(item.itemName.substring(0, 25), 20, yPosition)
         doc.text(item.category, 80, yPosition)
@@ -120,11 +126,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         [`Order Number: ${orderNumber}`],
         [`Date: ${currentDate}`],
         [],
-        ["FROM:", storeInfo.name],
+        ["FROM:", "Splash Brothers Inc."],
         ["Email:", storeInfo.email],
         [],
-        ["TO:", "SPLASH'N'GO! Parts Supplier"],
-        ["Location:", "China"],
+        ["TO:", "Haitain"],
+        ["Email:", "info@splashbrothers.co.jp"],
+        ["Shipping Address:", "SPLASH'N'GO!Maebashi50gou"],
+        ["", "Person in Charge"],
+        ["", "2-4-15 Amagawa-Oshima-machi, Maebashi-shi"],
+        ["", "Gunma 379-2154"],
+        ["", "Japan"],
         [],
         [`Shipping Method: ${getShippingMethodText(shippingMethod)}`],
         [],
