@@ -61,74 +61,91 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       // ヘッダー
       doc.setFontSize(20)
-      doc.text("PURCHASE ORDER", 105, 20, { align: "center" })
+      doc.setFont("helvetica", "bold")
+      doc.text("PURCHASE ORDER", 105, 25, { align: "center" })
 
+      // 基本情報
       doc.setFontSize(12)
-      doc.text(`Order Number: ${orderNumber}`, 20, 40)
-      doc.text(`Date: ${currentDate}`, 20, 50)
+      doc.setFont("helvetica", "normal")
+      doc.text(`Order Number: ${orderNumber}`, 20, 45)
+      doc.text(`Date: ${currentDate}`, 20, 55)
 
-      // 発注者情報
-      doc.text("FROM:", 20, 70)
-      doc.text("Splash Brothers Inc.", 20, 80)
-      doc.text(`Email: ${storeInfo.email}`, 20, 90)
+      // FROM情報
+      doc.setFont("helvetica", "bold")
+      doc.text("FROM:", 20, 75)
+      doc.setFont("helvetica", "normal")
+      doc.text("Splash Brothers Inc.", 20, 85)
+      doc.text(`Email: ${storeInfo.email}`, 20, 95)
 
-      // 配送先情報（TO:）
-      doc.text("TO:", 120, 70)
-      doc.text("Hefei Topwell Machinery Co., Ltd.", 120, 80)
-      doc.text("Tel: +8618226629892", 120, 90)
-      doc.text("Liv Wang", 120, 100)
-      doc.text("Email: liv@topwellclean.com", 120, 110)
-      doc.text("Add: #3 Building, Room 3001, Jiaqiao Lehu Mansion,", 120, 120)
-      doc.text("Fanhua Avenue Road, Economic Development Zone,", 120, 130)
-      doc.text("Hefei City, Anhui Province, China", 120, 140)
+      // TO情報
+      doc.setFont("helvetica", "bold")
+      doc.text("TO:", 110, 75)
+      doc.setFont("helvetica", "normal")
+      doc.text("Hefei Topwell Machinery Co., Ltd.", 110, 85)
+      doc.text("Tel: +8618226629892", 110, 95)
+      doc.text("Liv Wang", 110, 105)
+      doc.text("Email: liv@topwellclean.com", 110, 115)
+      doc.text("Add: #3 Building, Room 3001, Jiaqiao Lehu Mansion,", 110, 125)
+      doc.text("     Fanhua Avenue Road, Economic Development Zone,", 110, 135)
+      doc.text("     Hefei City, Anhui Province, China", 110, 145)
 
       // 配送方法
-      doc.text(`Shipping Method: ${getShippingMethodText(shippingMethod)}`, 20, 160)
+      doc.setFont("helvetica", "bold")
+      doc.text(`Shipping Method: `, 20, 165)
+      doc.setFont("helvetica", "normal")
+      doc.text(`${getShippingMethodText(shippingMethod)}`, 65, 165)
 
-      // テーブルヘッダー
-      doc.text("Item", 20, 180)
-      doc.text("Category", 80, 180)
-      doc.text("Store", 120, 180)
-      doc.text("Qty", 170, 180)
+      // テーブルヘッダー（位置と幅を調整）
+      doc.setFont("helvetica", "bold")
+      doc.text("Item Name", 20, 185)
+      doc.text("Category", 85, 185)
+      doc.text("Store", 125, 185)
+      doc.text("Qty", 165, 185)
 
-      // 線を引く
-      doc.line(20, 185, 190, 185)
+      // ヘッダー下の線
+      doc.line(20, 190, 185, 190)
 
       // アイテムリスト
-      let yPosition = 195
+      doc.setFont("helvetica", "normal")
+      let yPosition = 200
       items.forEach((item, index) => {
-        doc.text(item.itemName.substring(0, 25), 20, yPosition)
-        doc.text(item.category, 80, yPosition)
-        doc.text(item.storeName.substring(0, 15), 120, yPosition)
-        doc.text(item.quantity.toString(), 170, yPosition)
+        // 長い文字列は適切に切り詰める
+        const itemName = item.itemName.length > 30 ? item.itemName.substring(0, 27) + "..." : item.itemName
+        const category = item.category.length > 15 ? item.category.substring(0, 12) + "..." : item.category
+        const storeName = item.storeName.length > 15 ? item.storeName.substring(0, 12) + "..." : item.storeName
+
+        doc.text(itemName, 20, yPosition)
+        doc.text(category, 85, yPosition)
+        doc.text(storeName, 125, yPosition)
+        doc.text(item.quantity.toString(), 165, yPosition)
         yPosition += 10
       })
 
-      // 合計
-      doc.line(20, yPosition, 190, yPosition)
-      yPosition += 10
+      // 合計行の上の線
+      doc.line(20, yPosition + 5, 185, yPosition + 5)
+      yPosition += 15
+
+      // 合計情報
+      doc.setFont("helvetica", "bold")
       doc.text(`Total Items: ${items.length}`, 20, yPosition)
-      doc.text(`Total Quantity: ${items.reduce((sum, item) => sum + item.quantity, 0)}`, 120, yPosition)
+      doc.text(`Total Quantity: ${items.reduce((sum, item) => sum + item.quantity, 0)}`, 125, yPosition)
 
-      // Shipping Address（四角い枠で囲む）
-      yPosition += 20
+      // Shipping Address（適切なサイズの四角い枠で囲む）
+      yPosition += 25
 
-      // 四角い枠を描画
-      doc.rect(20, yPosition, 170, 50)
+      // 四角い枠を描画（高さを調整）
+      const boxHeight = 55
+      doc.rect(20, yPosition, 165, boxHeight)
 
-      // Shipping Address内容
-      yPosition += 10
-      doc.text("Shipping Address:", 25, yPosition)
-      yPosition += 8
-      doc.text("SPLASH'N'GO!", 25, yPosition)
-      yPosition += 8
-      doc.text("Attn: Person in Charge", 25, yPosition)
-      yPosition += 8
-      doc.text("2-4-15 Amagawa-Oshima-machi, Maebashi-shi", 25, yPosition)
-      yPosition += 8
-      doc.text("Gunma 379-2154", 25, yPosition)
-      yPosition += 8
-      doc.text("Japan", 25, yPosition)
+      // Shipping Address内容（枠内に適切に配置）
+      doc.setFont("helvetica", "bold")
+      doc.text("Shipping Address:", 25, yPosition + 12)
+
+      doc.setFont("helvetica", "normal")
+      doc.text("SPLASH'N'GO!", 25, yPosition + 22)
+      doc.text("Attn: Person in Charge", 25, yPosition + 32)
+      doc.text("2-4-15 Amagawa-Oshima-machi, Maebashi-shi", 25, yPosition + 42)
+      doc.text("Gunma 379-2154, Japan", 25, yPosition + 52)
 
       const pdfBuffer = Buffer.from(doc.output("arraybuffer"))
 
