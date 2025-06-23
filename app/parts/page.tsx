@@ -33,8 +33,8 @@ export default function PartsPage() {
   const [filteredItems, setFilteredItems] = useState<MachineItem[]>([])
   const [categories, setCategories] = useState<string[]>([])
   const [storeNames, setStoreNames] = useState<string[]>([])
-  const [selectedCategory, setSelectedCategory] = useState<string | null>("")
-  const [selectedStore, setSelectedStore] = useState<string | null>("")
+  const [selectedCategory, setSelectedCategory] = useState<string>("")
+  const [selectedStore, setSelectedStore] = useState<string>("")
   const [searchQuery, setSearchQuery] = useState("")
   const [quantities, setQuantities] = useState<{ [key: string]: number }>({})
   const [cart, setCart] = useState<PartsCartItem[]>([])
@@ -54,12 +54,12 @@ export default function PartsPage() {
         setMachineItems(data)
         setFilteredItems(data)
 
-        // カテゴリーと店舗名の一覧を抽出
-        const uniqueCategories = [...new Set(data.map((item: MachineItem) => item.category))]
-        const uniqueStoreNames = [...new Set(data.map((item: MachineItem) => item.storeName))]
+        // カテゴリーと店舗名の一覧を抽出（型安全な方法）
+        const uniqueCategories = [...new Set(data.map((item: MachineItem) => item.category))] as string[]
+        const uniqueStoreNames = [...new Set(data.map((item: MachineItem) => item.storeName))] as string[]
 
-        setCategories(uniqueCategories.filter((cat) => cat.trim() !== ""))
-        setStoreNames(uniqueStoreNames.filter((store) => store.trim() !== ""))
+        setCategories(uniqueCategories.filter((cat) => cat && cat.trim() !== ""))
+        setStoreNames(uniqueStoreNames.filter((store) => store && store.trim() !== ""))
 
         // 初期数量を設定
         const initialQuantities: { [key: string]: number } = {}
@@ -203,7 +203,7 @@ export default function PartsPage() {
         <div className="mb-8 flex flex-wrap gap-4 justify-center">
           <div className="flex flex-col">
             <label className="text-sm font-medium text-gray-700 mb-1">店舗名</label>
-            <Select value={selectedStore || ""} onValueChange={(value) => setSelectedStore(value || null)}>
+            <Select value={selectedStore} onValueChange={(value) => setSelectedStore(value)}>
               <SelectTrigger className="w-48 border-yellow-300 focus:ring-yellow-500">
                 <SelectValue placeholder="すべての店舗" />
               </SelectTrigger>
@@ -220,7 +220,7 @@ export default function PartsPage() {
 
           <div className="flex flex-col">
             <label className="text-sm font-medium text-gray-700 mb-1">カテゴリー</label>
-            <Select value={selectedCategory || ""} onValueChange={(value) => setSelectedCategory(value || null)}>
+            <Select value={selectedCategory} onValueChange={(value) => setSelectedCategory(value)}>
               <SelectTrigger className="w-48 border-yellow-300 focus:ring-yellow-500">
                 <SelectValue placeholder="すべてのカテゴリー" />
               </SelectTrigger>
