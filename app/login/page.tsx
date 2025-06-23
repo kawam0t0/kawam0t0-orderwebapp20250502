@@ -51,16 +51,22 @@ export default function LoginPage() {
         // スプレッドシートのデータを整形
         const storeList = data
           .map((row: any[], index: number) => {
+            // IDが空の場合は自動生成（必ず値を持つようにする）
+            const storeId = row[0] && row[0].trim() !== "" ? row[0] : `store_${index + 1}`
+            const storeName = row[1] || ""
+            const storeEmail = row[5] || ""
+            const storePassword = row[6] || ""
+
             const storeData = {
-              id: row[0] || `store_${index}`, // A列: ID（空の場合は自動生成）
-              name: row[1] || "", // B列: 店舗名
-              email: row[5] || "", // F列: メールアドレス
-              password: row[6] || "", // G列: パスワード
+              id: storeId,
+              name: storeName,
+              email: storeEmail,
+              password: storePassword,
             }
             console.log(`店舗データ ${index}:`, storeData)
             return storeData
           })
-          .filter((store: StoreInfo) => store.name && store.name.trim() !== "") // 店舗名が空でないもののみ
+          .filter((store: StoreInfo) => store.name && store.name.trim() !== "" && store.id && store.id.trim() !== "") // 店舗名とIDが空でないもののみ
 
         console.log("整形後の店舗リスト:", storeList)
         setStores(storeList)
@@ -205,7 +211,7 @@ export default function LoginPage() {
                     </SelectTrigger>
                     <SelectContent>
                       {stores.map((store) => (
-                        <SelectItem key={store.id} value={store.id || `fallback_${store.name}`}>
+                        <SelectItem key={store.id} value={store.id}>
                           {store.name}
                         </SelectItem>
                       ))}
