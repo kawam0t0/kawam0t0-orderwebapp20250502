@@ -119,6 +119,11 @@ export default function LoginPage() {
         (store) => store.id === selectedStore && store.email === email && store.password === password,
       )
 
+      console.log("=== ログイン処理デバッグ ===")
+      console.log("選択された店舗ID:", selectedStore)
+      console.log("入力されたメール:", email)
+      console.log("見つかった店舗データ:", storeData)
+
       if (storeData) {
         // 店舗情報をローカルストレージに保存
         const storeInfo = {
@@ -128,20 +133,20 @@ export default function LoginPage() {
         }
 
         localStorage.setItem("storeInfo", JSON.stringify(storeInfo))
+        console.log("保存された店舗情報:", storeInfo)
 
-        // デバッグ用ログを追加
-        console.log("Selected store ID:", selectedStore)
-        console.log("Redirecting to:", selectedStore === "parts_order" ? "/parts" : "/products")
-
-        // 部品発注の場合は部品一覧ページに、それ以外は商品一覧ページにリダイレクト
+        // 部品発注かどうかを確実にチェック
         if (selectedStore === "parts_order") {
-          console.log("Redirecting to parts page")
-          router.push("/parts")
+          console.log("部品発注が選択されました - /partsページに遷移します")
+          // 確実にpartsページに遷移
+          window.location.href = "/parts"
         } else {
-          console.log("Redirecting to products page")
-          router.push("/products")
+          console.log("通常の店舗が選択されました - /productsページに遷移します")
+          // 通常の店舗の場合はproductsページに遷移します
+          window.location.href = "/products"
         }
       } else {
+        console.log("認証に失敗しました")
         setError("メールアドレスまたはパスワードが正しくありません")
       }
     } catch (err) {
