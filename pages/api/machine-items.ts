@@ -68,8 +68,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       itemName: row[3] || "", // D列: アイテム名
     }))
 
-    // 空のアイテム名を除外
-    const filteredItems = machineItems.filter((item) => item.itemName.trim() !== "")
+    // 空のアイテム名、カテゴリー、店舗名を除外
+    const filteredItems = machineItems.filter(
+      (item) => item.itemName.trim() !== "" && item.category.trim() !== "" && item.storeName.trim() !== "",
+    )
 
     console.log(`フィルタリング後: ${filteredItems.length} 件の部品アイテム`)
 

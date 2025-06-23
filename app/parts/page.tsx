@@ -33,8 +33,8 @@ export default function PartsPage() {
   const [filteredItems, setFilteredItems] = useState<MachineItem[]>([])
   const [categories, setCategories] = useState<string[]>([])
   const [storeNames, setStoreNames] = useState<string[]>([])
-  const [selectedCategory, setSelectedCategory] = useState<string>("")
-  const [selectedStore, setSelectedStore] = useState<string>("")
+  const [selectedCategory, setSelectedCategory] = useState<string>("all")
+  const [selectedStore, setSelectedStore] = useState<string>("all")
   const [searchQuery, setSearchQuery] = useState("")
   const [quantities, setQuantities] = useState<{ [key: string]: number }>({})
   const [cart, setCart] = useState<PartsCartItem[]>([])
@@ -92,12 +92,12 @@ export default function PartsPage() {
     let filtered = machineItems
 
     // 店舗名でフィルタリング
-    if (selectedStore) {
+    if (selectedStore !== "all") {
       filtered = filtered.filter((item) => item.storeName === selectedStore)
     }
 
     // カテゴリーでフィルタリング
-    if (selectedCategory) {
+    if (selectedCategory !== "all") {
       filtered = filtered.filter((item) => item.category === selectedCategory)
     }
 
@@ -208,12 +208,14 @@ export default function PartsPage() {
                 <SelectValue placeholder="すべての店舗" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">すべての店舗</SelectItem>
-                {storeNames.map((store) => (
-                  <SelectItem key={store} value={store}>
-                    {store}
-                  </SelectItem>
-                ))}
+                <SelectItem value="all">すべての店舗</SelectItem>
+                {storeNames
+                  .filter((store) => store && store.trim() !== "")
+                  .map((store) => (
+                    <SelectItem key={store} value={store}>
+                      {store}
+                    </SelectItem>
+                  ))}
               </SelectContent>
             </Select>
           </div>
@@ -225,12 +227,14 @@ export default function PartsPage() {
                 <SelectValue placeholder="すべてのカテゴリー" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">すべてのカテゴリー</SelectItem>
-                {categories.map((category) => (
-                  <SelectItem key={category} value={category}>
-                    {category}
-                  </SelectItem>
-                ))}
+                <SelectItem value="all">すべてのカテゴリー</SelectItem>
+                {categories
+                  .filter((category) => category && category.trim() !== "")
+                  .map((category) => (
+                    <SelectItem key={category} value={category}>
+                      {category}
+                    </SelectItem>
+                  ))}
               </SelectContent>
             </Select>
           </div>
@@ -276,7 +280,7 @@ export default function PartsPage() {
                         </SelectTrigger>
                         <SelectContent>
                           {[...Array(10)].map((_, i) => (
-                            <SelectItem key={i + 1} value={String(i + 1)}>
+                            <SelectItem key={`${item.id}-qty-${i + 1}`} value={String(i + 1)}>
                               {i + 1}個
                             </SelectItem>
                           ))}
@@ -309,8 +313,8 @@ export default function PartsPage() {
                   className="rounded-full px-6 border-yellow-300 text-yellow-700 hover:bg-yellow-50"
                   onClick={() => {
                     setSearchQuery("")
-                    setSelectedCategory("")
-                    setSelectedStore("")
+                    setSelectedCategory("all")
+                    setSelectedStore("all")
                   }}
                 >
                   すべての部品を表示
