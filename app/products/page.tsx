@@ -183,6 +183,7 @@ const LIQUID_PRICES: { [key: string]: number } = {
   スプコート: 25000,
   セラミック: 120000,
   スプタイヤ: 7000,
+  ピッカークロスミニ: 30000, // 400枚あたりの価格
 }
 
 // 液剤商品の単価を取得する関数
@@ -770,6 +771,9 @@ export default function ProductsPage() {
         { value: "300", label: "300枚", price: 0 },
         { value: "500", label: "500枚", price: 0 },
         { value: "1000", label: "1000枚", price: 0 },
+        { value: "1500", label: "1500枚", price: 0 },
+        { value: "2000", label: "2000枚", price: 0 },
+        { value: "2500", label: "2500枚", price: 0 },
       ]
     }
 
@@ -1071,7 +1075,26 @@ export default function ProductsPage() {
                           </Select>
                         </div>
                       </>
-                    ) : // 液剤商品の場合
+                    ) : // ピッカークロスミニの場合（400・800・1200枚）
+                    isSpecificProduct(product.name, "ピッカークロス") ? (
+                      <div className="mb-3">
+                        <Select
+                          value={String(selectedAmounts[product.id] || 400)}
+                          onValueChange={(value) => handleAmountChange(product.id, Number(value))}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="数量を選択" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {[400, 800, 1200].map((qty) => (
+                              <SelectItem key={`${product.id}-picker-${qty}`} value={String(qty)}>
+                                {qty}枚
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    ) : // 液剤商品の場合（1〜10本）
                     isLiquidItem(product.name) ? (
                       <div className="mb-3">
                         <Select
@@ -1165,12 +1188,7 @@ export default function ProductsPage() {
                       )}
                     </div>
 
-                    {/* パートナー情報 */}
-                    {product.partnerName && (
-                      <p className="text-sm text-gray-600 mb-2">
-                        <span className="font-medium">取引先:</span> {product.partnerName}
-                      </p>
-                    )}
+                    {/* パートナー情報は非表示 */}
                   </CardContent>
 
                   <CardFooter className="p-4 pt-0">
