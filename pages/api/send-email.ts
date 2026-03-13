@@ -1,7 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next"
 import nodemailer from "nodemailer"
 
-// メール送信用のトランスポーターを設定
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || "smtp.gmail.com",
   port: Number(process.env.SMTP_PORT) || 587,
@@ -28,7 +27,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const { to, cc, subject, orderNumber, storeName, partnerName, items, totalAmount } = req.body
+    const { to, cc, subject, orderNumber, storeName, partnerName, items } = req.body
 
     console.log("=== 発注依頼メール送信開始 ===")
     console.log("送信先(To):", to)
@@ -36,9 +35,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.log("件名:", subject)
     console.log("発注番号:", orderNumber)
     console.log("店舗名:", storeName)
-    console.log("取引先名:", partnerName)
     console.log("商品数:", items?.length || 0)
-    console.log("合計金額:", totalAmount)
 
     if (!to || !subject || !orderNumber || !storeName || !items) {
       console.error("必要なパラメータが不足しています:", { to, subject, orderNumber, storeName, hasItems: !!items })
@@ -51,26 +48,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.log("- User:", process.env.SMTP_USER ? "設定済み" : "未設定")
     console.log("- Pass:", process.env.SMTP_PASSWORD ? "設定済み" : "未設定")
 
-    // 商品リストのHTMLを生成
+    // 商品リストのHTMLを生成（金額列なし）
     const itemsHtml = items
       .map(
         (item: any) => `
         <tr>
-          <td style="padding: 8px; border-bottom: 1px solid #eee;">${item.item_name}</td>
+          <td style="padding: 8px; border-bottom: 1px solid #eee;">${item.item_name || item.name || ""}</td>
           <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">${item.selectedSize || "-"}</td>
           <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">${item.selectedColor || "-"}</td>
           <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">${item.quantity}</td>
-          <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">¥${Number(item.item_price || 0).toLocaleString()}</td>
         </tr>
       `,
       )
       .join("")
 
-    const formattedTotal = new Intl.NumberFormat("ja-JP").format(totalAmount)
-    const displayPartnerName = partnerName || to
-    const orderDate = new Date().toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" })
-
-    // メール本文（取引先への発注依頼）
     const html = `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
       <div style="background-color: #3D55D8; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
@@ -79,7 +70,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       </div>
 
       <div style="padding: 25px; background-color: #f0f9ff; border-left: 1px solid #e0f2fe; border-right: 1px solid #e0f2fe;">
-        <p style="color: #334155;">${displayPartnerName} 御中</p>
+        <p style="color: #334155;">${partnerName || ""} 御中</p>
         <p style="color: #334155;">
           いつもお世話になっております。SPLASH'N'GO!です。<br>
           下記の通り発注をお願いいたします。<br>
@@ -89,7 +80,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         <div style="background-color: white; border-radius: 8px; padding: 20px; margin: 20px 0; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid #bae6fd;">
           <h2 style="margin-top: 0; color: #3D55D8; font-size: 18px; border-bottom: 2px solid #e0f2fe; padding-bottom: 10px;">発注情報</h2>
           <p style="color: #334155;"><strong style="color: #3D55D8;">発注番号:</strong> ${orderNumber}</p>
-          <p style="color: #334155;"><strong style="color: #3D55D8;">発注日時:</strong> ${orderDate}</p>
+          <p style="color: #334155;"><strong style="color: #3D55D8;">発注日時:</strong> ${new Date().toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" })}</p>
           <p style="color: #334155;"><strong style="color: #3D55D8;">発注店舗:</strong> ${storeName}</p>
 
           <h3 style="margin: 20px 0 10px; color: #3D55D8; font-size: 16px;">発注商品一覧</h3>
@@ -100,17 +91,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 <th style="padding: 10px; text-align: center; color: #3D55D8; font-weight: 600;">サイズ</th>
                 <th style="padding: 10px; text-align: center; color: #3D55D8; font-weight: 600;">カラー</th>
                 <th style="padding: 10px; text-align: center; color: #3D55D8; font-weight: 600;">数量</th>
-                <th style="padding: 10px; text-align: right; color: #3D55D8; font-weight: 600;">金額</th>
               </tr>
             </thead>
             <tbody>
               ${itemsHtml}
             </tbody>
           </table>
-
-          <div style="margin-top: 20px; text-align: right; padding-top: 10px; border-top: 1px solid #e0f2fe;">
-            <p style="color: #334155; font-size: 16px;"><strong style="color: #3D55D8;">合計金額（税込）:</strong> ¥${formattedTotal}</p>
-          </div>
         </div>
 
         <p style="color: #334155; background-color: #dbeafe; padding: 12px; border-radius: 6px; border-left: 4px solid #3D55D8;">
