@@ -210,7 +210,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               .forEach((row) => {
                 const orderNumber = row[0]
                 if (!ordersMap[orderNumber]) {
-                  const items = []
+                  const items: { name: string; size: string; color: string; quantity: string }[] = []
                   for (let i = 0; i < MAX_ITEMS; i++) {
                     const colBase = BASE_COLS + i * COLS_PER_ITEM
                     const itemName = row[colBase]
