@@ -981,15 +981,12 @@ export default function ProductsPage() {
                 >
                   {/* 水色の枠内に画像を表示 */}
                   <div className="relative pt-[100%] bg-gray-50 border-2 border-cyan-300">
-                    <Image
-                      src={getProductImage(product, products, selectedColors[product.id]) || "/placeholder.svg"}
+                    <img
+                      src={getProductImage(product, products, selectedColors[product.id]) || DEFAULT_PLACEHOLDER_URL}
                       alt={product.name}
-                      fill
-                      className="object-contain p-4"
-                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                      className="absolute inset-0 w-full h-full object-contain p-4"
                       key={`${product.id}-${selectedColors[product.id]}`}
                       onError={(e) => {
-                        console.error(`Error loading image for ${product.name}, using placeholder`)
                         e.currentTarget.src = DEFAULT_PLACEHOLDER_URL
                       }}
                     />

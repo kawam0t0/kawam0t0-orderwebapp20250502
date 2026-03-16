@@ -1,251 +1,238 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { format } from "date-fns"
+import { ja } from "date-fns/locale"
+import { ArrowLeft } from "lucide-react"
 
-interface OrderItem {
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+
+type OrderItem = {
   name: string
-  size: string
-  color: string
-  quantity: string
+  size?: string
+  color?: string
+  quantity?: string
 }
 
-interface Order {
-  id: string
-  orderNumber: string
+type OrderHistoryItem = {
+  orderId: string
   orderDate: string
-  orderTime: string
   storeName: string
-  email: string
-  items: OrderItem[]
+  storeEmail: string
+  items: OrderItem[] | string
+  shippingDate?: string
   status: string
-  shippingDate: string | null
-  sourceSheet: string
+  dataSource: string
 }
 
 export default function OrderHistoryPage() {
-  const [orders, setOrders] = useState<Order[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [storeInfo, setStoreInfo] = useState<any>(null)
   const router = useRouter()
+  const [orders, setOrders] = useState<OrderHistoryItem[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [storeInfo, setStoreInfo] = useState<{ name: string; email: string } | null>(null)
 
   useEffect(() => {
-    // ローカルストレージから店舗情報を取得
-    const storedStoreInfo = localStorage.getItem("storeInfo")
-    if (storedStoreInfo) {
-      const parsedStoreInfo = JSON.parse(storedStoreInfo)
-      setStoreInfo(parsedStoreInfo)
-      console.log("Store info loaded:", parsedStoreInfo)
-    } else {
-      setError("店舗情報が見つかりません。再度ログインしてください。")
-      setLoading(false)
+    const savedStoreInfo = localStorage.getItem("storeInfo")
+    if (!savedStoreInfo) {
+      router.push("/login")
       return
     }
-  }, [])
 
-  useEffect(() => {
-    if (!storeInfo) return
+    let parsedInfo: { name: string; email: string } | null = null
+    try {
+      parsedInfo = JSON.parse(savedStoreInfo)
+      setStoreInfo(parsedInfo)
+    } catch (e) {
+      console.error("Failed to parse store info:", e)
+      router.push("/login")
+      return
+    }
 
-    const fetchOrders = async () => {
-      setLoading(true)
-      setError(null)
+    const fetchOrderHistory = async () => {
       try {
-        console.log("Fetching orders for store:", storeInfo.name)
+        setIsLoading(true)
 
-        // hirock_item_historyシートから注文履歴を取得
-        const hirockResponse = await fetch("/api/sheets?sheet=hirock_item_history")
-        let hirockOrders: Order[] = []
+        const [hirockResponse, regularResponse] = await Promise.all([
+          fetch("/api/sheets?sheet=hirock_item_history"),
+          fetch("/api/sheets?sheet=Order_history"),
+        ])
 
-        if (hirockResponse.ok) {
-          const hirockData = await hirockResponse.json()
-          console.log("Hirock data received:", hirockData.length, "orders")
+        const hirockData = hirockResponse.ok ? await hirockResponse.json() : []
+        const regularData = regularResponse.ok ? await regularResponse.json() : []
 
-          // 該当店舗の注文のみをフィルタリング
-          hirockOrders = hirockData.filter((order: Order) => {
-            const matches = order.storeName === storeInfo.name || order.email === storeInfo.email
-            if (matches) {
-              console.log("Matched hirock order:", order.orderNumber, "for store:", order.storeName)
+        const hirockOrders: OrderHistoryItem[] = hirockData.map((o: any) => ({
+          orderId: o.orderNumber,
+          orderDate: `${o.orderDate} ${o.orderTime}`,
+          storeName: o.storeName,
+          storeEmail: o.email,
+          items: o.items || [],
+          shippingDate: o.shippingDate,
+          status: o.status || "処理中",
+          dataSource: "新システム",
+        }))
+
+        const regularOrders: OrderHistoryItem[] = regularData.map((o: any) => ({
+          orderId: o.orderNumber,
+          orderDate: `${o.orderDate} ${o.orderTime}`,
+          storeName: o.storeName,
+          storeEmail: o.email,
+          items: o.items || [],
+          shippingDate: o.shippingDate,
+          status: o.status || "処理中",
+          dataSource: "旧システム",
+        }))
+
+        const allOrders = [...hirockOrders, ...regularOrders]
+
+        // 店舗情報でフィルタリング（parsedInfoを直接使用）
+        const storeOrders = allOrders.filter((order: OrderHistoryItem) => {
+          const matchesStoreName = order.storeName === parsedInfo?.name
+          const matchesEmail = order.storeEmail === parsedInfo?.email
+          return matchesStoreName || matchesEmail
+        })
+
+        // 発注番号で重複排除（新システムを優先）
+        const uniqueOrders = storeOrders.reduce((acc: OrderHistoryItem[], current: OrderHistoryItem) => {
+          const existingIndex = acc.findIndex((order) => order.orderId === current.orderId)
+          if (existingIndex >= 0) {
+            if (current.dataSource === "新システム") {
+              acc[existingIndex] = current
             }
-            return matches
-          })
-        } else {
-          console.warn("Failed to fetch hirock_item_history:", hirockResponse.status)
-        }
-
-        // Order_historyシートから注文履歴を取得
-        const orderResponse = await fetch("/api/sheets?sheet=Order_history")
-        let orderHistoryOrders: Order[] = []
-
-        if (orderResponse.ok) {
-          const orderData = await orderResponse.json()
-          console.log("Order history data received:", orderData.length, "orders")
-
-          // 該当店舗の注文のみをフィルタリング
-          orderHistoryOrders = orderData.filter((order: Order) => {
-            const matches = order.storeName === storeInfo.name || order.email === storeInfo.email
-            if (matches) {
-              console.log("Matched order history:", order.orderNumber, "for store:", order.storeName)
-            }
-            return matches
-          })
-        } else {
-          console.warn("Failed to fetch Order_history:", orderResponse.status)
-        }
-
-        // 両方のシートからの注文を結合
-        const allOrders = [...hirockOrders, ...orderHistoryOrders]
-        console.log("Total filtered orders:", allOrders.length)
-
-        // 発注番号でグループ化（重複を避けるため）
-        const orderMap = new Map<string, Order>()
-        allOrders.forEach((order) => {
-          const existing = orderMap.get(order.orderNumber)
-          if (!existing) {
-            orderMap.set(order.orderNumber, order)
           } else {
-            // より新しいステータス情報を優先
-            if (order.status === "出荷済み" || order.shippingDate) {
-              orderMap.set(order.orderNumber, order)
-            }
+            acc.push(current)
           }
-        })
+          return acc
+        }, [])
 
-        const uniqueOrders = Array.from(orderMap.values())
+        // 発注日で降順ソート
+        uniqueOrders.sort((a, b) => new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime())
 
-        // 日付順でソート（新しい順）
-        uniqueOrders.sort((a, b) => {
-          const dateA = new Date(`${a.orderDate} ${a.orderTime}`)
-          const dateB = new Date(`${b.orderDate} ${a.orderTime}`)
-          return dateB.getTime() - dateA.getTime()
-        })
-
-        console.log("Final orders to display:", uniqueOrders.length)
         setOrders(uniqueOrders)
-      } catch (e: any) {
-        console.error("Error fetching orders:", e)
-        setError(e.message)
+      } catch (error) {
+        console.error("Error fetching order history:", error)
       } finally {
-        setLoading(false)
+        setIsLoading(false)
       }
     }
 
-    fetchOrders()
-  }, [storeInfo])
+    fetchOrderHistory()
+  }, [router])
 
-  if (loading) {
-    return <div className="text-center py-8">読み込み中...</div>
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "出荷済み":
+        return <Badge className="bg-green-100 text-green-800">出荷済み</Badge>
+      case "対応中":
+        return <Badge className="bg-yellow-100 text-yellow-800">対応中</Badge>
+      case "処理中":
+        return <Badge className="bg-blue-100 text-blue-800">処理中</Badge>
+      default:
+        return <Badge className="bg-gray-100 text-gray-800">{status}</Badge>
+    }
   }
 
-  if (error) {
-    return <div className="text-center py-8 text-red-500">エラー: {error}</div>
-  }
-
-  if (orders.length === 0) {
+  if (isLoading) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold">発注履歴</h1>
-          <button
-            onClick={() => router.push("/products")}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium"
-          >
-            発注画面に戻る
-          </button>
-        </div>
-        <Card>
-          <CardContent className="py-8">
-            <div className="text-center text-gray-500">
-              {storeInfo ? `${storeInfo.name}の発注履歴はありません。` : "発注履歴はありません。"}
-            </div>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
       </div>
     )
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">発注履歴</h1>
-        <button
-          onClick={() => router.push("/products")}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium"
-        >
-          発注画面に戻る
-        </button>
-      </div>
-      {storeInfo && (
-        <div className="mb-4 text-sm text-gray-600">
-          店舗: {storeInfo.name} ({storeInfo.email})
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-6xl mx-auto">
+        {/* ヘッダー */}
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">発注履歴</h1>
+            {storeInfo && (
+              <p className="text-gray-600">
+                店舗: {storeInfo.name} ({storeInfo.email})
+              </p>
+            )}
+          </div>
+          <Button onClick={() => router.push("/products")} className="bg-blue-600 hover:bg-blue-700 text-white">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            発注画面に戻る
+          </Button>
         </div>
-      )}
-      <Card>
-        <CardHeader>
-          <CardTitle>過去の発注 ({orders.length}件)</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>発注番号</TableHead>
-                <TableHead>発注日時</TableHead>
-                <TableHead>商品詳細</TableHead>
-                <TableHead>出荷日</TableHead>
-                <TableHead>ステータス</TableHead>
-                <TableHead>データソース</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {orders.map((order) => (
-                <TableRow key={`${order.orderNumber}-${order.sourceSheet}`}>
-                  <TableCell className="font-medium">{order.orderNumber}</TableCell>
-                  <TableCell>
-                    {order.orderDate} {order.orderTime}
-                  </TableCell>
-                  <TableCell>
-                    <div className="space-y-1">
-                      {order.items.map((item, idx) => (
-                        <div key={idx} className="text-sm">
-                          <span className="font-medium">{item.name}</span>
-                          {item.color && <span className="text-gray-600"> ({item.color})</span>}
-                          {item.size && <span className="text-gray-600"> - {item.size}</span>}
-                          <span className="text-gray-600"> × {item.quantity}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {order.shippingDate ? (
-                      <span className="text-green-600">{order.shippingDate}</span>
-                    ) : (
-                      <span className="text-gray-400">未定</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        order.status === "出荷済み"
-                          ? "bg-green-100 text-green-800"
-                          : order.status === "対応中"
-                            ? "bg-yellow-100 text-yellow-800"
-                            : "bg-gray-100 text-gray-800"
-                      }`}
-                    >
-                      {order.status}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-xs text-gray-500">
-                    {order.sourceSheet === "hirock_item_history" ? "新システム" : "旧システム"}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+
+        {orders.length === 0 ? (
+          <Card>
+            <CardContent className="text-center py-12">
+              <p className="text-gray-500 text-lg">発注履歴がありません</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <CardHeader>
+              <CardTitle>過去の発注 ({orders.length}件)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr className="border-b bg-gray-50">
+                      <th className="text-left p-3 font-semibold">発注番号</th>
+                      <th className="text-left p-3 font-semibold">発注日時</th>
+                      <th className="text-left p-3 font-semibold">商品詳細</th>
+                      <th className="text-left p-3 font-semibold">出荷日</th>
+                      <th className="text-left p-3 font-semibold">ステータス</th>
+                      <th className="text-left p-3 font-semibold">データソース</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {orders.map((order, index) => (
+                      <tr key={`${order.orderId}-${index}`} className="border-b hover:bg-gray-50">
+                        <td className="p-3 font-mono text-sm">{order.orderId}</td>
+                        <td className="p-3">{format(new Date(order.orderDate), "yyyy/MM/dd HH:mm", { locale: ja })}</td>
+                        <td className="p-3">
+                          <div className="max-w-md">
+                            {Array.isArray(order.items)
+                              ? order.items.map((item: OrderItem, i: number) => {
+                                  const parts = [item.name]
+                                  if (item.color && item.color !== "-") parts[0] += ` (${item.color})`
+                                  if (item.size && item.size !== "-") parts[0] += ` - ${item.size}`
+                                  if (item.quantity) parts[0] += ` × ${item.quantity}`
+                                  return (
+                                    <div key={i} className="text-sm text-gray-700 mb-1">
+                                      {parts[0]}
+                                    </div>
+                                  )
+                                })
+                              : typeof order.items === "string"
+                              ? order.items.split("\n").map((item: string, i: number) => (
+                                  <div key={i} className="text-sm text-gray-700 mb-1">{item}</div>
+                                ))
+                              : null}
+                          </div>
+                        </td>
+                        <td className="p-3">
+                          {order.shippingDate ? (
+                            <span className="text-green-600 font-medium">
+                              {format(new Date(order.shippingDate), "yyyy-MM-dd", { locale: ja })}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400">未定</span>
+                          )}
+                        </td>
+                        <td className="p-3">{getStatusBadge(order.status)}</td>
+                        <td className="p-3">
+                          <Badge variant="outline">{order.dataSource}</Badge>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
     </div>
   )
 }

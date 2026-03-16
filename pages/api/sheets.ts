@@ -269,28 +269,46 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           break
 
         case "Order_history":
-          range = "Order_history!A2:Z"
-          processData = (data) =>
+          range = "Order_history!A2:GZ"
+          processData = (data) => {
+            const MAX_ITEMS = 50
+            const BASE_COLS = 5   // A〜E: id, date, time, store_name, mail
+            const COLS_PER_ITEM = 4 // item_name, size, color, quantity
+            const ordersMap: { [key: string]: any } = {}
+
             data
               .filter((row) => row[0])
-              .map((row) => ({
-                orderNumber: row[0] || "",
-                orderDate: row[1] || "",
-                orderTime: row[2] || "",
-                storeName: row[3] || "",
-                email: row[4] || "",
-                items: [
-                  {
-                    name: row[5] || "",
-                    size: row[6] || "",
-                    color: row[7] || "",
-                    quantity: row[8] || "",
-                  },
-                ],
-                status: row[13] || "処理中",
-                shippingDate: row[14] || null,
-                sourceSheet: "Order_history",
-              }))
+              .forEach((row) => {
+                const orderNumber = row[0]
+                if (!ordersMap[orderNumber]) {
+                  const items: { name: string; size: string; color: string; quantity: string }[] = []
+                  for (let i = 0; i < MAX_ITEMS; i++) {
+                    const colBase = BASE_COLS + i * COLS_PER_ITEM
+                    const itemName = row[colBase]
+                    if (itemName && itemName.trim()) {
+                      items.push({
+                        name: itemName,
+                        size: row[colBase + 1] || "",
+                        color: row[colBase + 2] || "",
+                        quantity: row[colBase + 3] || "",
+                      })
+                    }
+                  }
+                  ordersMap[orderNumber] = {
+                    orderNumber,
+                    orderDate: row[1] || "",
+                    orderTime: row[2] || "",
+                    storeName: row[3] || "",
+                    email: row[4] || "",
+                    items,
+                    status: row[BASE_COLS + MAX_ITEMS * COLS_PER_ITEM + 1] || "処理中",
+                    shippingDate: row[BASE_COLS + MAX_ITEMS * COLS_PER_ITEM] || null,
+                    sourceSheet: "Order_history",
+                  }
+                }
+              })
+            return Object.values(ordersMap)
+          }
           break
 
         case "machine_item":

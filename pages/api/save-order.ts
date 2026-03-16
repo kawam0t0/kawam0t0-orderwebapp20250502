@@ -158,29 +158,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     console.log(`hirock_item_history対象アイテム: ${hirockTargetItems.length}件（液剤除外済み）`)
 
-    // Order_history用は従来通り各アイテムを1行ずつ
+    // Order_history用: hirock_item_historyと同じ横方向（1行=1注文）
+    const orderRowData: string[] = new Array(TOTAL_COLS).fill("")
+    orderRowData[0] = orderNumber
+    orderRowData[1] = dateStr
+    orderRowData[2] = timeStr
+    orderRowData[3] = storeInfo.name
+    orderRowData[4] = storeInfo.email
+
     items.forEach((item: any, index: number) => {
-      console.log(`Processing item ${index + 1}:`, item.item_name)
-      const orderRow = [
-        orderNumber,
-        dateStr,
-        timeStr,
-        storeInfo.name,
-        storeInfo.email,
-        item.item_name,
-        item.selectedSize || "",
-        item.selectedColor || "",
-        item.quantity || 1,
-        item.selectedQuantity || "",
-        item.item_price || "",
-        totalAmount || "",
-        shippingMethod || "standard",
-        "処理中",
-        "", "", "",
-        ...Array(30).fill(""),
-      ]
-      orderRows.push(orderRow)
+      if (index >= MAX_ITEMS) return
+      const colBase = BASE_COLS + index * COLS_PER_ITEM
+      orderRowData[colBase]     = item.item_name || ""
+      orderRowData[colBase + 1] = item.selectedSize || ""
+      orderRowData[colBase + 2] = item.selectedColor || ""
+      orderRowData[colBase + 3] = String(item.quantity || 1)
     })
+
+    orderRowData[SHIPPING_DATE_COL] = ""
+    orderRowData[STATUS_COL] = "処理中"
+    orderRowData[NOTES_COL] = ""
+
+    orderRows.push(orderRowData)
 
     // Order_historyシートに保存
     const orderSheetNames = ["Order_history"]
