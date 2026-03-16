@@ -105,7 +105,7 @@ const isCourseSticker = (name: string): boolean => {
 }
 
 // デフォルトの画像プレースホルダーURL
-const DEFAULT_PLACEHOLDER_URL = "/diverse-products-still-life.png"
+const DEFAULT_PLACEHOLDER_URL = "/placeholder.svg"
 
 const threeWeeksDeliveryItems = [
   "Tシャツ",
@@ -323,12 +323,11 @@ export default function ProductsPage() {
         const itemsWithImages = data.filter((p) => p.imageUrl && p.imageUrl.trim() !== "").length
         console.log(`Found ${itemsWithImages} items with image URLs out of ${data.length} total items`)
 
-        // 画像URLを変換
+        // sheets.ts側で変換済みのURLをそのまま使用（二重変換しない）
         const productsWithConvertedUrls = data.map((product) => {
-          const convertedUrl = product.imageUrl ? convertGoogleDriveUrl(product.imageUrl) : DEFAULT_PLACEHOLDER_URL
           return {
             ...product,
-            imageUrl: convertedUrl,
+            imageUrl: product.imageUrl || DEFAULT_PLACEHOLDER_URL,
           }
         })
 

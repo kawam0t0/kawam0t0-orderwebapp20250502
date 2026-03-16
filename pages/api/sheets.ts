@@ -28,19 +28,16 @@ const CACHE_DURATION = 2 * 60 * 1000 // 2分間キャッシュ
 function convertGoogleDriveUrl(url: string): string {
   try {
     if (!url) return ""
-
-    // Google DriveのURLかどうかを確認（view形式）
-    if (url.includes("drive.google.com/file/d/")) {
-      // ファイルIDを抽出
-      const fileIdMatch = url.match(/\/d\/([^/]+)/)
-      if (fileIdMatch && fileIdMatch[1]) {
-        const fileId = fileIdMatch[1]
-        // 直接表示可能なURLに変換
-        console.log(`Converting Google Drive URL for file ID: ${fileId}`)
-        return `https://drive.google.com/uc?export=view&id=${fileId}`
-      }
+    // /file/d/FILE_ID/ 形式
+    const fileMatch = url.match(/\/d\/([a-zA-Z0-9_-]+)/)
+    if (fileMatch && fileMatch[1]) {
+      return `https://drive.google.com/thumbnail?sz=w800&id=${fileMatch[1]}`
     }
-
+    // すでに ?id= 形式（/uc?export=view&id= など）の場合も thumbnail に変換
+    const idMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/)
+    if (idMatch && idMatch[1]) {
+      return `https://drive.google.com/thumbnail?sz=w800&id=${idMatch[1]}`
+    }
     return url
   } catch (error) {
     console.error("Error converting Google Drive URL:", error)
