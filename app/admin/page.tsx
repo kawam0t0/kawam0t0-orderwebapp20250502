@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { Package, LogOut, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -8,7 +8,6 @@ import { format, parseISO, isValid } from "date-fns"
 import { ja } from "date-fns/locale"
 import { CategoryTabs } from "./category-tabs"
 
-// 除外するアイテムリスト
 const EXCLUDED_ITEMS = [
   "スプシャン",
   "スプワックス",
@@ -19,7 +18,6 @@ const EXCLUDED_ITEMS = [
   "ピッカークロス",
 ]
 
-// 注文アイテムの型定義
 type OrderItem = {
   name: string
   size: string
@@ -28,7 +26,6 @@ type OrderItem = {
   imageUrl?: string
 }
 
-// 注文の型定義
 type Order = {
   id: number
   orderNumber: string
@@ -40,10 +37,9 @@ type Order = {
   status: string
   shippingDate?: string | null
   sourceSheet: string
-  notes?: string // 備考欄を追加
+  notes?: string
 }
 
-// 商品情報の型定義
 type AvailableItem = {
   id: string
   category: string
@@ -58,9 +54,9 @@ type AvailableItem = {
   imageUrl?: string
 }
 
-// 日付を安全に解析する関数
 const safeParseISO = (dateString: string | null | undefined) => {
   if (!dateString) return null
+
   try {
     const date = parseISO(dateString)
     return isValid(date) ? date : null
@@ -70,7 +66,6 @@ const safeParseISO = (dateString: string | null | undefined) => {
   }
 }
 
-// ステータスに応じた色を返す関数
 const getStatusColor = (status: string) => {
   switch (status) {
     case "処理中":
@@ -86,22 +81,27 @@ const getStatusColor = (status: string) => {
 
 export default function AdminPage() {
   const router = useRouter()
+
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
   const [activeCategory, setActiveCategory] = useState<string>("すべて")
-  const categories = ["すべて"]
   const [availableItems, setAvailableItems] = useState<AvailableItem[]>([])
   const [statusFilter, setStatusFilter] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  // 商品データを取得する関数
+  const categories = ["すべて"]
+
+  const notesTimersRef = useRef<{ [orderNumber: string]: ReturnType<typeof setTimeout> }>({})
+
   const fetchAvailableItems = async () => {
     try {
       const response = await fetch("/api/sheets?sheet=Available_items")
+
       if (response.status === 429) {
         setError("APIの利用制限に達しました。しばらく待ってから再度お試しください。")
         return
       }
+
       if (response.ok) {
         const data = await response.json()
         setAvailableItems(data)
@@ -114,12 +114,11 @@ export default function AdminPage() {
     }
   }
 
-  // 注文データを取得する関数 - hirock_item_historyシートのみを使用
   const fetchOrders = async () => {
     setLoading(true)
     setError(null)
+
     try {
-      // hirock_item_historyシートからのみデータを取得（BD列の備考も含む）
       const response = await fetch("/api/sheets?sheet=hirock_item_history")
 
       if (response.status === 429) {
@@ -128,66 +127,52 @@ export default function AdminPage() {
         return
       }
 
-      let orderData = []
-
-      if (response.ok) {
-        orderData = await response.json()
-      } else {
+      if (!response.ok) {
         console.error("Failed to fetch orders")
         setError("注文データの取得に失敗しました。")
         setLoading(false)
         return
       }
 
-      // 発注番号ごとにグループ化
+      const orderData = await response.json()
+
       const orderMap = new Map<string, Order>()
 
       orderData.forEach((order: Order) => {
         const orderNumber = order.orderNumber
 
         if (!orderMap.has(orderNumber)) {
-          // 新しい発注番号の場合、マップに追加（BD列から読み込んだ備考を含む）
           orderMap.set(orderNumber, {
             ...order,
             id: Math.random(),
-            notes: order.notes || "", // BD列から読み込んだ備考
+            notes: order.notes || "",
           })
         } else {
-          // 既存の発注番号の場合、アイテムを追加
           const existingOrder = orderMap.get(orderNumber)!
           existingOrder.items = [...existingOrder.items, ...order.items]
-          // 備考は最初の行のものを保持（同じ発注番号なので同じ備考のはず）
         }
       })
 
-      // マップから配列に変換
       const mergedOrders = Array.from(orderMap.values())
 
-      // 各注文から除外アイテムをフィルタリング
       const filteredOrders = mergedOrders
         .map((order) => {
-          // 除外アイテム以外のアイテムだけをフィルタリング
           const filteredItems = order.items.filter(
             (item) => !EXCLUDED_ITEMS.some((excludedItem) => item.name.includes(excludedItem)),
           )
 
-          // フィルタリングされたアイテムで注文を更新
           return {
             ...order,
             items: filteredItems,
           }
         })
-        .filter((order) => order.items.length > 0) // アイテムが0になった注文は除外
+        .filter((order) => order.items.length > 0)
 
-      // 日付でソートする（降順 - 最新のものが上に来るように）
       const sortedOrders = [...filteredOrders].sort((a, b) => {
-        // 日付と時間を結合して比較
         const dateA = new Date(`${a.orderDate} ${a.orderTime}`)
         const dateB = new Date(`${b.orderDate} ${b.orderTime}`)
-        return dateB.getTime() - dateA.getTime() // 降順
+        return dateB.getTime() - dateA.getTime()
       })
-
-      console.log("Fetched and processed orders:", sortedOrders.length)
 
       setOrders(sortedOrders)
     } catch (error) {
@@ -198,148 +183,38 @@ export default function AdminPage() {
     }
   }
 
-  // 初回レンダリング時にデータを取得
   useEffect(() => {
     fetchAvailableItems()
     fetchOrders()
+
+    return () => {
+      Object.values(notesTimersRef.current).forEach((timer) => clearTimeout(timer))
+    }
   }, [])
 
-  // 日付をフォーマットする関数
   const formatDateTime = (dateStr: string, timeStr: string) => {
     try {
-      // 日付と時間を解析
       const [year, month, day] = dateStr.split("/").map(Number)
       const [hour, minute] = timeStr.split(":").map(Number)
 
       const date = new Date(year, month - 1, day, hour, minute)
 
-      // 日付をフォーマット
       return format(date, "yyyy年MM月dd日(EEE) HH:mm", { locale: ja })
     } catch (e) {
       return `${dateStr} ${timeStr}`
     }
   }
 
-  // 注文ステータスを更新する関数
-  const updateOrderStatus = async (orderNumber: string, newStatus: string, shippingDate?: string) => {
-    try {
-      console.log(`Updating status for order ${orderNumber} to ${newStatus}`)
-
-      // 該当する注文を見つける
-      const targetOrder = orders.find((order) => order.orderNumber === orderNumber)
-      if (!targetOrder) {
-        console.error("Target order not found for status update.")
-        return
-      }
-
-      // まず、ローカル状態を即座に更新（UIの即座な反映のため）
-      setOrders((prevOrders) =>
-        prevOrders.map((order) =>
-          order.orderNumber === orderNumber
-            ? { ...order, status: newStatus, shippingDate: shippingDate || order.shippingDate }
-            : order,
-        ),
-      )
-
-      // ステータスを更新（hirock_item_historyシートのみ）
-      const statusResponse = await fetch("/api/update-order-status", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ orderNumber, newStatus, sheetName: "hirock_item_history" }),
-      })
-
-      if (statusResponse.status === 429) {
-        alert("APIの利用制限に達しました。しばらく待ってから再度お試しください。")
-        // エラーの場合は元の状態に戻す
-        setOrders((prevOrders) =>
-          prevOrders.map((order) =>
-            order.orderNumber === orderNumber
-              ? { ...order, status: targetOrder.status, shippingDate: targetOrder.shippingDate }
-              : order,
-          ),
-        )
-        return
-      }
-
-      if (!statusResponse.ok) {
-        // エラーの場合は元の状態に戻す
-        setOrders((prevOrders) =>
-          prevOrders.map((order) =>
-            order.orderNumber === orderNumber
-              ? { ...order, status: targetOrder.status, shippingDate: targetOrder.shippingDate }
-              : order,
-          ),
-        )
-        throw new Error("Failed to update order status")
-      }
-
-      // 出荷日を更新（対応中または出荷済みの場合のみ）
-      if ((newStatus === "対応中" || newStatus === "出荷済み") && shippingDate) {
-        const shippingResponse = await fetch("/api/update-shipping-date", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ orderNumber, shippingDate, sheetName: "hirock_item_history" }),
-        })
-
-        if (!shippingResponse.ok) {
-          console.error("Failed to update shipping date")
-        }
-
-        // 出荷済みステータスで出荷日が設定された場合のみ、出荷通知メールを送信
-        if (newStatus === "出荷済み" && shippingDate) {
-          try {
-            console.log("出荷通知メールを送信中:", orderNumber)
-
-            const emailResponse = await fetch("/api/send-shipping-notification", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                to: targetOrder.email,
-                orderNumber: orderNumber,
-                storeName: targetOrder.storeName,
-                shippingDate: shippingDate,
-                items: targetOrder.items,
-              }),
-            })
-
-            if (!emailResponse.ok) {
-              console.error("出荷通知メールの送信に失敗しました")
-            } else {
-              console.log("出荷通知メールを送信しました:", orderNumber)
-            }
-          } catch (emailError) {
-            console.error("出荷通知メール送信エラー:", emailError)
-          }
-        }
-      }
-
-      console.log(`Successfully updated status for order ${orderNumber} to ${newStatus}`)
-
-      // 最後にデータを再取得して同期を確保（バックグラウンドで実行）
-      setTimeout(() => {
-        fetchOrders()
-      }, 1000)
-    } catch (error) {
-      console.error("Error updating order:", error)
-      alert("注文の更新に失敗しました。")
-    }
-  }
-
-  // 備考を更新する関数（hirock_item_historyシートのBD列に保存）
-  const updateOrderNotes = async (orderNumber: string, notes: string) => {
-    // ローカル状態を即座に更新（UIの即座な反映のため）
+  const updateOrderNotes = (orderNumber: string, notes: string) => {
     setOrders((prevOrders) =>
       prevOrders.map((order) => (order.orderNumber === orderNumber ? { ...order, notes } : order)),
     )
 
-    // デバウンス処理のためのタイマーを設定
-    const timeoutId = setTimeout(async () => {
+    if (notesTimersRef.current[orderNumber]) {
+      clearTimeout(notesTimersRef.current[orderNumber])
+    }
+
+    notesTimersRef.current[orderNumber] = setTimeout(async () => {
       try {
         const response = await fetch("/api/update-order-notes", {
           method: "POST",
@@ -363,13 +238,9 @@ export default function AdminPage() {
         console.error("Error updating notes:", error)
         alert("備考の保存に失敗しました。もう一度お試しください。")
       }
-    }, 1000) // 1秒後に保存
-
-    // クリーンアップ関数を返す（実際には使用されないが、パターンとして）
-    return () => clearTimeout(timeoutId)
+    }, 1000)
   }
 
-  // ステータスフィルターを適用
   const filteredOrders = statusFilter ? orders.filter((order) => order.status === statusFilter) : orders
 
   return (
@@ -381,6 +252,7 @@ export default function AdminPage() {
               <Package className="h-5 w-5 mr-2 text-blue-500" />
               <h1 className="text-xl font-bold text-gray-900">SPLASH'N'GO! 管理者ダッシュボード</h1>
             </div>
+
             <div className="flex items-center gap-3">
               <div className="flex space-x-2">
                 <Button
@@ -391,6 +263,7 @@ export default function AdminPage() {
                 >
                   すべて
                 </Button>
+
                 <Button
                   variant={statusFilter === "処理中" ? "default" : "outline"}
                   size="sm"
@@ -399,6 +272,7 @@ export default function AdminPage() {
                 >
                   処理中
                 </Button>
+
                 <Button
                   variant={statusFilter === "対応中" ? "default" : "outline"}
                   size="sm"
@@ -407,6 +281,7 @@ export default function AdminPage() {
                 >
                   対応中
                 </Button>
+
                 <Button
                   variant={statusFilter === "出荷済み" ? "default" : "outline"}
                   size="sm"
@@ -416,6 +291,7 @@ export default function AdminPage() {
                   出荷済み
                 </Button>
               </div>
+
               <Button
                 variant="outline"
                 onClick={() => {
@@ -474,18 +350,14 @@ export default function AdminPage() {
           </div>
         ) : (
           <>
-            <CategoryTabs
-              categories={categories}
-              activeCategory={activeCategory}
-              onCategoryChange={setActiveCategory}
-            />
+            <CategoryTabs categories={categories} activeCategory={activeCategory} onCategoryChange={setActiveCategory} />
 
-            {/* 注文一覧表示 */}
             <div className="mt-8">
               <div className="bg-white rounded-lg shadow">
                 <div className="px-6 py-4 border-b border-gray-200">
                   <h3 className="text-lg font-medium text-gray-900">発注履歴一覧</h3>
                 </div>
+
                 <div className="overflow-x-auto">
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
@@ -513,16 +385,20 @@ export default function AdminPage() {
                         </th>
                       </tr>
                     </thead>
+
                     <tbody className="bg-white divide-y divide-gray-200">
                       {filteredOrders.map((order) => (
                         <tr key={order.orderNumber}>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                             {order.orderNumber}
                           </td>
+
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                             {formatDateTime(order.orderDate, order.orderTime)}
                           </td>
+
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.storeName}</td>
+
                           <td className="px-6 py-4 text-sm text-gray-500">
                             <div className="space-y-1">
                               {order.items.map((item, idx) => (
@@ -533,12 +409,14 @@ export default function AdminPage() {
                               ))}
                             </div>
                           </td>
+
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                             <input
                               type="date"
                               value={order.shippingDate || ""}
                               onChange={async (e) => {
                                 const newDate = e.target.value
+
                                 setOrders((prev) =>
                                   prev.map((o) =>
                                     o.orderNumber === order.orderNumber ? { ...o, shippingDate: newDate } : o,
@@ -560,7 +438,6 @@ export default function AdminPage() {
 
                                   if (response.status === 429) {
                                     alert("APIの利用制限に達しました。しばらく待ってから再度お試しください。")
-                                    // エラー時は元に戻す
                                     setOrders((prev) =>
                                       prev.map((o) =>
                                         o.orderNumber === order.orderNumber
@@ -574,16 +451,11 @@ export default function AdminPage() {
                                   if (!response.ok) {
                                     throw new Error("Failed to update shipping date")
                                   }
-
-                                  console.log(`Updated shipping date for ${order.orderNumber}`)
                                 } catch (error) {
                                   console.error("Error updating shipping date:", error)
-                                  // エラー時は元に戻す
                                   setOrders((prev) =>
                                     prev.map((o) =>
-                                      o.orderNumber === order.orderNumber
-                                        ? { ...o, shippingDate: order.shippingDate }
-                                        : o,
+                                      o.orderNumber === order.orderNumber ? { ...o, shippingDate: order.shippingDate } : o,
                                     ),
                                   )
                                 }
@@ -591,6 +463,7 @@ export default function AdminPage() {
                               className="border border-gray-300 rounded px-2 py-1 text-sm"
                             />
                           </td>
+
                           <td className="px-6 py-4 whitespace-nowrap">
                             <select
                               value={order.status}
@@ -619,7 +492,6 @@ export default function AdminPage() {
 
                                   if (response.status === 429) {
                                     alert("APIの利用制限に達しました。しばらく待ってから再度お試しください。")
-                                    // エラー時は元に戻す
                                     setOrders((prev) =>
                                       prev.map((o) =>
                                         o.orderNumber === order.orderNumber ? { ...o, status: oldStatus } : o,
@@ -631,11 +503,8 @@ export default function AdminPage() {
                                   if (!response.ok) {
                                     throw new Error("Failed to update status")
                                   }
-
-                                  console.log(`Updated status for ${order.orderNumber} to ${newStatus}`)
                                 } catch (error) {
                                   console.error("Error updating status:", error)
-                                  // エラー時は元に戻す
                                   setOrders((prev) =>
                                     prev.map((o) =>
                                       o.orderNumber === order.orderNumber ? { ...o, status: oldStatus } : o,
@@ -650,6 +519,7 @@ export default function AdminPage() {
                               <option value="出荷済み">出荷済み</option>
                             </select>
                           </td>
+
                           <td className="px-6 py-4 text-sm text-gray-500">
                             <textarea
                               value={order.notes || ""}

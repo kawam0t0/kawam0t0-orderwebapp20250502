@@ -1,7 +1,16 @@
 {
-  "/not-found": "app/not-found.js",
-  "/page": "app/page.js",
+  "/_not-found": "app/_not-found.js",
   "/login/page": "app/login/page.js",
+  "/admin/page": "app/admin/page.js",
+  "/checkout/page": "app/checkout/page.js",
+  "/cart/page": "app/cart/page.js",
+  "/page": "app/page.js",
+  "/order-complete/page": "app/order-complete/page.js",
+  "/order-history/page": "app/order-history/page.js",
+  "/parts-cart/page": "app/parts-cart/page.js",
+  "/order-confirmation/page": "app/order-confirmation/page.js",
+  "/parts-checkout/page": "app/parts-checkout/page.js",
   "/products/page": "app/products/page.js",
-  "/order-history/page": "app/order-history/page.js"
+  "/parts-order-complete/page": "app/parts-order-complete/page.js",
+  "/parts/page": "app/parts/page.js"
 }
