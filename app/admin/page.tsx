@@ -16,7 +16,6 @@ const EXCLUDED_ITEMS = [
   "スプタイヤ",
   "マイクロファイバー",
   "ピッカークロス",
-  
 ]
 
 type OrderItem = {
