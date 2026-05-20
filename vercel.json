@@ -2,6 +2,5 @@
   "buildCommand": "node -e \"if(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) require('fs').writeFileSync('./google-credentials.json', process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON)\" && next build",
   "env": {
     "GOOGLE_APPLICATION_CREDENTIALS": "./google-credentials.json"
-  },
-  "observabilityEvents": false
+  }
 }
