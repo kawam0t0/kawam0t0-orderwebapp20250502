@@ -1,1 +1,6 @@
-{"/_app":"pages/_app.js","/api/admin-login":"pages/api/admin-login.js","/api/check-partner-sheet":"pages/api/check-partner-sheet.js","/_error":"pages/_error.js","/api/admin-orders":"pages/api/admin-orders.js","/api/get-hirock-order-items":"pages/api/get-hirock-order-items.js","/api/generate-purchase-order":"pages/api/generate-purchase-order.js","/api/get-partner-info":"pages/api/get-partner-info.js","/api/login":"pages/api/login.js","/api/machine-items":"pages/api/machine-items.js","/api/send-email":"pages/api/send-email.js","/api/send-line-message":"pages/api/send-line-message.js","/api/save-order":"pages/api/save-order.js","/api/hirock_admin_orders":"pages/api/hirock_admin_orders.js","/api/send-parts-order-email":"pages/api/send-parts-order-email.js","/api/send-partner-email":"pages/api/send-partner-email.js","/api/sheets":"pages/api/sheets.js","/api/save-parts-order":"pages/api/save-parts-order.js","/api/stores":"pages/api/stores.js","/api/test-email":"pages/api/test-email.js","/api/send-shipping-notification":"pages/api/send-shipping-notification.js","/api/update-shipping-date":"pages/api/update-shipping-date.js","/api/update-order-notes":"pages/api/update-order-notes.js","/api/update-order-status":"pages/api/update-order-status.js","/_document":"pages/_document.js","/404":"pages/404.html"}
+{
+  "/_app": "pages/_app.js",
+  "/_error": "pages/_error.js",
+  "/_document": "pages/_document.js",
+  "/api/sheets": "pages/api/sheets.js"
+}

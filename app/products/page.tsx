@@ -153,9 +153,9 @@ const FIXED_QUANTITY_PRICE_MAP = {
     { quantity: 1000, label: "1000枚", price: 20000 },
   ],
   ピッカークロス: [
-    { quantity: 400, label: "400枚", price: 30000 },
-    { quantity: 800, label: "800枚", price: 60000 },
-    { quantity: 1200, label: "1200枚", price: 90000 },
+    { quantity: 1, label: "1", price: 30000 },
+    { quantity: 2, label: "2", price: 60000 },
+    { quantity: 3, label: "3", price: 90000 },
   ],
 }
 
@@ -183,7 +183,7 @@ const LIQUID_PRICES: { [key: string]: number } = {
   スプコート: 25000,
   セラミック: 120000,
   スプタイヤ: 7000,
-  ピッカークロスミニ: 30000, // 400枚あたりの価格
+  ピッカークロスミニ: 30000, // 1セット(400枚)あたりの価格
 }
 
 // 液剤商品の単価を取得する関数
@@ -372,7 +372,7 @@ export default function ProductsPage() {
           } else if (isSpecificProduct(product.name, "利用規約")) {
             initialAmounts[product.id] = 500
           } else if (isSpecificProduct(product.name, "ピッカークロス")) {
-            initialAmounts[product.id] = 400
+            initialAmounts[product.id] = 1
           } else if (isCourseSticker(product.name)) {
             // コースシール初期数量300枚
             initialAmounts[product.id] = 300
@@ -680,9 +680,9 @@ export default function ProductsPage() {
 
     if (isSpecificProduct(product.name, "ピッカークロス")) {
       const selectedAmount = selectedAmounts[product.id]
-      if (selectedAmount === 400) return "30,000"
-      if (selectedAmount === 800) return "60,000"
-      if (selectedAmount === 1200) return "90,000"
+      if (selectedAmount === 1) return "30,000"
+      if (selectedAmount === 2) return "60,000"
+      if (selectedAmount === 3) return "90,000"
     }
 
     // 液剤商品の場合：固定価格マップから1本あたりの価格 × 本数
@@ -831,9 +831,9 @@ export default function ProductsPage() {
 
     if (isSpecificProduct(product.name, "ピッカークロス")) {
       return [
-        { value: "400", label: "400枚", price: 30000 },
-        { value: "800", label: "800枚", price: 60000 },
-        { value: "1200", label: "1200枚", price: 90000 },
+        { value: "1", label: "1", price: 30000 },
+        { value: "2", label: "2", price: 60000 },
+        { value: "3", label: "3", price: 90000 },
       ]
     }
 
@@ -1071,20 +1071,20 @@ export default function ProductsPage() {
                           </Select>
                         </div>
                       </>
-                    ) : // ピッカークロスミニの場合（400・800・1200枚）
+                    ) : // ピッカークロスミニの場合（1・2・3）
                     isSpecificProduct(product.name, "ピッカークロス") ? (
                       <div className="mb-3">
                         <Select
-                          value={String(selectedAmounts[product.id] || 400)}
+                          value={String(selectedAmounts[product.id] || 1)}
                           onValueChange={(value) => handleAmountChange(product.id, Number(value))}
                         >
                           <SelectTrigger className="w-full">
                             <SelectValue placeholder="数量を選択" />
                           </SelectTrigger>
                           <SelectContent>
-                            {[400, 800, 1200].map((qty) => (
+                            {[1, 2, 3].map((qty) => (
                               <SelectItem key={`${product.id}-picker-${qty}`} value={String(qty)}>
-                                {qty}枚
+                                {qty}
                               </SelectItem>
                             ))}
                           </SelectContent>
