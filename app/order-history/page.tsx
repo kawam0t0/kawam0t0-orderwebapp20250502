@@ -1,14 +1,22 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { format } from "date-fns"
 import { ja } from "date-fns/locale"
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft, Download, FileText } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { generateReceiptPDF, type OrderRecord } from "@/components/order-receipt-pdf"
 
 type OrderItem = {
   name: string
@@ -32,7 +40,9 @@ export default function OrderHistoryPage() {
   const router = useRouter()
   const [orders, setOrders] = useState<OrderHistoryItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false)
   const [storeInfo, setStoreInfo] = useState<{ name: string; email: string } | null>(null)
+  const [selectedMonth, setSelectedMonth] = useState<string>("all")
 
   useEffect(() => {
     const savedStoreInfo = localStorage.getItem("storeInfo")
@@ -87,7 +97,7 @@ export default function OrderHistoryPage() {
 
         const allOrders = [...hirockOrders, ...regularOrders]
 
-        // 店舗情報でフィルタリング（parsedInfoを直接使用）
+        // 店舗情報でフィルタリング
         const storeOrders = allOrders.filter((order: OrderHistoryItem) => {
           const matchesStoreName = order.storeName === parsedInfo?.name
           const matchesEmail = order.storeEmail === parsedInfo?.email
@@ -121,6 +131,33 @@ export default function OrderHistoryPage() {
     fetchOrderHistory()
   }, [router])
 
+  // 月一覧を生成（発注日から）
+  const availableMonths = useMemo(() => {
+    const monthSet = new Set<string>()
+    orders.forEach((order) => {
+      try {
+        const d = new Date(order.orderDate)
+        if (!isNaN(d.getTime())) {
+          monthSet.add(format(d, "yyyy-MM"))
+        }
+      } catch {}
+    })
+    return Array.from(monthSet).sort((a, b) => b.localeCompare(a))
+  }, [orders])
+
+  // 月でフィルタリングされた発注一覧
+  const filteredOrders = useMemo(() => {
+    if (selectedMonth === "all") return orders
+    return orders.filter((order) => {
+      try {
+        const d = new Date(order.orderDate)
+        return format(d, "yyyy-MM") === selectedMonth
+      } catch {
+        return false
+      }
+    })
+  }, [orders, selectedMonth])
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "出荷済み":
@@ -131,6 +168,31 @@ export default function OrderHistoryPage() {
         return <Badge className="bg-blue-100 text-blue-800">処理中</Badge>
       default:
         return <Badge className="bg-gray-100 text-gray-800">{status}</Badge>
+    }
+  }
+
+  const handleDownloadPDF = async () => {
+    if (!storeInfo || filteredOrders.length === 0) return
+    setIsGeneratingPDF(true)
+    try {
+      const records: OrderRecord[] = filteredOrders.map((o) => ({
+        orderId: o.orderId,
+        orderDate: o.orderDate,
+        storeName: o.storeName,
+        items: o.items,
+      }))
+
+      const monthLabel =
+        selectedMonth === "all"
+          ? "全期間"
+          : format(new Date(selectedMonth + "-01"), "yyyy年MM月", { locale: ja })
+
+      await generateReceiptPDF(records, storeInfo.name, monthLabel)
+    } catch (error) {
+      console.error("PDF generation error:", error)
+      alert("PDF の生成中にエラーが発生しました。")
+    } finally {
+      setIsGeneratingPDF(false)
     }
   }
 
@@ -146,7 +208,7 @@ export default function OrderHistoryPage() {
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-6xl mx-auto">
         {/* ヘッダー */}
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">発注履歴</h1>
             {storeInfo && (
@@ -161,16 +223,69 @@ export default function OrderHistoryPage() {
           </Button>
         </div>
 
-        {orders.length === 0 ? (
+        {/* フィルター & PDF ダウンロード */}
+        <Card className="mb-6">
+          <CardContent className="p-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              <div className="flex items-center gap-3 flex-1">
+                <FileText className="h-5 w-5 text-gray-500 shrink-0" />
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+                  <span className="text-sm font-medium text-gray-700 whitespace-nowrap">対象月:</span>
+                  <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                    <SelectTrigger className="w-44">
+                      <SelectValue placeholder="月を選択" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">全期間</SelectItem>
+                      {availableMonths.map((m) => (
+                        <SelectItem key={m} value={m}>
+                          {format(new Date(m + "-01"), "yyyy年MM月", { locale: ja })}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <span className="text-sm text-gray-500">
+                  {filteredOrders.length}件
+                </span>
+              </div>
+              <Button
+                onClick={handleDownloadPDF}
+                disabled={filteredOrders.length === 0 || isGeneratingPDF}
+                className="bg-green-600 hover:bg-green-700 text-white shrink-0"
+              >
+                {isGeneratingPDF ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                    生成中...
+                  </>
+                ) : (
+                  <>
+                    <Download className="h-4 w-4 mr-2" />
+                    領収書 PDF ダウンロード
+                  </>
+                )}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {filteredOrders.length === 0 ? (
           <Card>
             <CardContent className="text-center py-12">
-              <p className="text-gray-500 text-lg">発注履歴がありません</p>
+              <p className="text-gray-500 text-lg">
+                {selectedMonth === "all" ? "発注履歴がありません" : "該当する発注はありません"}
+              </p>
             </CardContent>
           </Card>
         ) : (
           <Card>
             <CardHeader>
-              <CardTitle>過去の発注 ({orders.length}件)</CardTitle>
+              <CardTitle>
+                {selectedMonth === "all"
+                  ? `全期間の発注 (${filteredOrders.length}件)`
+                  : `${format(new Date(selectedMonth + "-01"), "yyyy年MM月", { locale: ja })} の発注 (${filteredOrders.length}件)`}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
@@ -186,7 +301,7 @@ export default function OrderHistoryPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {orders.map((order, index) => (
+                    {filteredOrders.map((order, index) => (
                       <tr key={`${order.orderId}-${index}`} className="border-b hover:bg-gray-50">
                         <td className="p-3 font-mono text-sm">{order.orderId}</td>
                         <td className="p-3">{format(new Date(order.orderDate), "yyyy/MM/dd HH:mm", { locale: ja })}</td>
