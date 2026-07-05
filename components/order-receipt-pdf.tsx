@@ -1,15 +1,6 @@
 "use client"
 
 import jsPDF from "jspdf"
-import "jspdf-autotable"
-
-// jspdf-autotable の型拡張
-declare module "jspdf" {
-  interface jsPDF {
-    autoTable: (options: any) => jsPDF
-    lastAutoTable: { finalY: number }
-  }
-}
 
 // ========== 価格ロジック（products/page.tsx と共有） ==========
 
