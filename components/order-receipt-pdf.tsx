@@ -41,7 +41,7 @@ const LIQUID_PRICES: { [key: string]: number } = {
   スプシャン: 6000,
   スプワックス: 40000,
   スプコート: 25000,
-  セラミック: 120000,
+  スプセラ: 120000,
   スプタイヤ: 7000,
   ピッカークロスミニ: 30000,
 }
@@ -82,7 +82,7 @@ const COURSE_STICKER_PRICES: { quantity: number; price: number }[] = [
 
 const isCourseSticker = (name: string) => courseStickers.some((s) => name.includes(s))
 const isLiquidItem = (name: string) =>
-  ["スプシャン", "スプワックス", "スプコート", "セラミック", "スプタイヤ", "ピッカークロスミニ"].some((k) =>
+  ["スプシャン", "スプワックス", "スプコート", "スプセラ", "スプタイヤ", "ピッカークロスミニ"].some((k) =>
     name.includes(k),
   )
 const isApparelItem = (name: string) =>
@@ -259,7 +259,7 @@ async function generateReceiptPDFWithCanvas(
       <!-- 宛先 -->
       <div style="margin-bottom: 28px;">
         <div style="font-size: 18px; font-weight: 600;">${storeName} 御中</div>
-        
+        <div style="font-size: 12px; color: #666; margin-top: 4px;">発注件数: ${orders.length}件</div>
       </div>
 
       <!-- 合計金額ハイライト -->
