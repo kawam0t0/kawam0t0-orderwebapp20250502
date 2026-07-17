@@ -53,7 +53,7 @@ const threeWeeksDeliveryItems = [
 ]
 
 // 4日後の納期を表示する商品リストを更新（3日後から4日後に変更）
-const fourDaysDeliveryItems = ["スプシャン", "スプワックス", "スプコート", "セラミック", "スプタイヤ", "ピッカークロス"]
+const fourDaysDeliveryItems = ["スプシャン", "スプワックス", "スプコート", "スプセラ", "スプタイヤ", "ピッカークロス"]
 
 // formatQuantity 関数を以下のように修正します。
 // 既存の formatQuantity 関数を置き換えてください。
@@ -456,7 +456,7 @@ export default function CartPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* ヘッダー */}
+      {/* ヘ��ダー */}
       <header className="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-4 sticky top-0 z-50 shadow-md">
         <div className="container mx-auto px-4">
           <div className="flex justify-between items-center">

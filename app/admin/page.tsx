@@ -12,7 +12,7 @@ const EXCLUDED_ITEMS = [
   "スプシャン",
   "スプワックス",
   "スプコート",
-  "セラミック",
+  "スプセラ",
   "スプタイヤ",
   "マイクロファイバー",
   "ピッカークロス",
@@ -437,7 +437,7 @@ export default function AdminPage() {
                                   })
 
                                   if (response.status === 429) {
-                                    alert("APIの利用制限に達しました。しばらく待ってから再度お試しください。")
+                                    alert("APIの利用制限に��しました。しばらく待ってから再度お試しください。")
                                     setOrders((prev) =>
                                       prev.map((o) =>
                                         o.orderNumber === order.orderNumber

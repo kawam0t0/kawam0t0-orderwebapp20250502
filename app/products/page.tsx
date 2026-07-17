@@ -63,7 +63,7 @@ const isAluminumBoardItem = (name: string): boolean => {
 
 // 液剤商品かどうかを判定する関数（新規追加）
 const isLiquidItem = (name: string): boolean => {
-  const liquidItems = ["スプシャン", "スプワックス", "スプコート", "セラミック", "スプタイヤ", "ピッカークロスミニ"]
+  const liquidItems = ["スプシャン", "スプワックス", "スプコート", "スプセラ", "スプタイヤ", "ピッカークロスミニ"]
   return liquidItems.some((item) => name.includes(item))
 }
 
@@ -123,7 +123,7 @@ const threeWeeksDeliveryItems = [
 ]
 
 // 4日後の納期を表示する商品リスト
-const fourDaysDeliveryItems = ["スプシャン", "スプワックス", "スプコート", "セラミック", "スプタイヤ", "ピッカークロス"]
+const fourDaysDeliveryItems = ["スプシャン", "スプワックス", "スプコート", "スプセラ", "スプタイヤ", "ピッカークロス"]
 
 // 固定数量と価格のマッピング（更新版）
 const FIXED_QUANTITY_PRICE_MAP = {
@@ -181,7 +181,7 @@ const LIQUID_PRICES: { [key: string]: number } = {
   スプシャン: 6000,
   スプワックス: 40000,
   スプコート: 25000,
-  セラミック: 120000,
+  スプセラ: 120000,
   スプタイヤ: 7000,
   ピッカークロスミニ: 30000, // 1セット(400枚)あたりの価格
 }
@@ -692,7 +692,7 @@ export default function ProductsPage() {
       return (basePrice * amount).toLocaleString()
     }
 
-    // アパレル商品の場合
+    // アパレ��商品の場合
     if (isApparelItem(product.name)) {
       const amount = selectedAmounts[product.id] || 1
       const selectedSize = selectedSizes[product.id]

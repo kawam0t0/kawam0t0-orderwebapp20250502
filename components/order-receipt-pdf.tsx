@@ -41,7 +41,7 @@ const LIQUID_PRICES: { [key: string]: number } = {
   スプシャン: 6000,
   スプワックス: 40000,
   スプコート: 25000,
-  セラミック: 120000,
+  スプセラ: 120000,
   スプタイヤ: 7000,
   ピッカークロスミニ: 30000,
 }
@@ -82,7 +82,7 @@ const COURSE_STICKER_PRICES: { quantity: number; price: number }[] = [
 
 const isCourseSticker = (name: string) => courseStickers.some((s) => name.includes(s))
 const isLiquidItem = (name: string) =>
-  ["スプシャン", "スプワックス", "スプコート", "セラミック", "スプタイヤ", "ピッカークロスミニ"].some((k) =>
+  ["スプシャン", "スプワックス", "スプコート", "スプセラ", "スプタイヤ", "ピッカークロスミニ"].some((k) =>
     name.includes(k),
   )
 const isApparelItem = (name: string) =>

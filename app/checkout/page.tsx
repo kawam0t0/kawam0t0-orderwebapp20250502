@@ -126,7 +126,7 @@ const threeWeeksDeliveryItems = [
 ]
 
 // 4日後の納期を表示する商品リストを更新（3日後から4日後に変更）
-const fourDaysDeliveryItems = ["スプシャン", "スプワックス", "スプコート", "セラミック", "スプタイヤ", "ピッカークロス"]
+const fourDaysDeliveryItems = ["スプシャン", "スプワックス", "スプコート", "スプセラ", "スプタイヤ", "ピッカークロス"]
 
 // 納期の計算
 const calculateDeliveryDate = (leadTime: string, category: string, itemName: string) => {
